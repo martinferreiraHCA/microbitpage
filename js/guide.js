@@ -18,24 +18,24 @@
       <p>Usá <b>Chrome o Edge</b>, conectá el micro:bit por USB y presioná <b>Conectar micro:bit</b>. Elegí el dispositivo "BBC micro:bit CMSIS-DAP" en la ventana.</p>
       <p>¿Sin micro:bit? Activá <b>Herramientas → Simulador de datos</b>: genera datos de prueba con los nombres <code>temp</code>, <code>luz</code> y <code>sonido</code>.</p>`, action: { label: 'Activar simulador', fn: () => Simulator.start() } },
     { title: '3. Mirá los datos que llegan', target: '#add-btn', html: `
-      <p>Agregá al panel una <b>Tabla de variables</b> o una <b>Consola serial</b> (botón + Agregar). Vas a ver cada variable con su valor en tiempo real.</p>
+      <p>Agregá al panel una <b>Tabla de variables</b> o una <b>Consola serial</b> (botón <b>+ Agregar</b>). Vas a ver cada variable con su valor en tiempo real.</p>
       <p>La barra de estado de abajo también muestra la última línea recibida.</p>`, action: { label: 'Agregar tabla de variables', fn: () => Dashboard.add('tabla') } },
     { title: '4. Armá tu panel', target: '#dash-viewport', html: `
-      <p>Agregá widgets: <b>Valor</b>, <b>Medidor</b>, <b>Barra</b>, <b>Gráfico</b>, <b>Luz</b>, <b>Texto</b>, <b>Botón</b>…</p>
+      <p>El panel se arma con <b>elementos</b>: tarjetas que muestran una variable del micro:bit o lo controlan. Con <b>+ Agregar</b> elegís uno: <b>Valor</b>, <b>Medidor</b>, <b>Barra</b>, <b>Gráfico</b>, <b>Luz</b>, <b>Texto</b>, <b>Botón</b>…</p>
       <ul><li><b>Arrastrá</b> para moverlos y usá la esquina inferior derecha para cambiar el tamaño.</li><li><b>Doble clic</b> (o ⚙) abre las <b>propiedades</b>: elegí la variable que muestra, unidad, colores, título.</li><li>El <b>título</b> es el nombre que después usan los bloques.</li></ul>`, action: { label: 'Agregar un medidor', fn: () => Dashboard.add('medidor') } },
     { title: '5. Reglas de alerta', target: '#props', html: `
-      <p>Los widgets numéricos y las luces tienen <b>Reglas de alerta</b> en sus propiedades: <i>si el valor &gt; 30 → Peligro → "¡Hace calor!"</i>.</p>
-      <p>Cuando se cumple, el widget cambia de color, suena una alarma y aparece en la <b>Lista de alertas</b>. No hace falta programar nada.</p>`, action: { label: 'Agregar lista de alertas', fn: () => Dashboard.add('alertas') } },
+      <p>Los elementos numéricos y las luces tienen <b>Reglas de alerta</b> en sus propiedades: <i>si el valor &gt; 30 → Peligro → "¡Hace calor!"</i>.</p>
+      <p>Cuando se cumple, el elemento cambia de color, suena una alarma y aparece en la <b>Lista de alertas</b>. No hace falta programar nada.</p>`, action: { label: 'Agregar lista de alertas', fn: () => Dashboard.add('alertas') } },
     { title: '6. Programá con bloques', target: '#blocks-pane', html: `
       <p>Para lógica más rica usá los bloques (izquierda). Empezá con un evento amarillo, por ejemplo <b>📡 cuando llegan datos</b>, y colgá debajo un <b>si</b> con <b>valor de temp &gt; 30</b> → <b>luz encendida</b>.</p>
       <p>Presioná <b>▶ Ejecutar</b>. Los bloques corren mientras lleguen datos.</p>
       <p class="muted">Bloques útiles: <b>alerta</b>, <b>enviar al micro:bit</b>, <b>cada N segundos</b>, <b>cuando se presiona el botón</b>, <b>guardar en variable del panel</b> (para calcular promedios o conversiones y mostrarlos).</p>`, action: { label: 'Ejecutar bloques ▶', fn: () => Runtime.start() } },
     { title: '7. Fondo con imagen e indicadores', target: '#btn-bg', html: `
       <p>Con <b>Fondo</b> podés poner una foto o un plano (por ejemplo, de tu aula o de una maqueta) y ubicar encima <b>luces</b>, <b>valores</b> y <b>textos</b>.</p>
-      <p>Elegí "Sin fondo" y desactivá "Mostrar título" en las propiedades para que los indicadores floten sobre la imagen. Con <b>➚ Flecha</b> y el widget <b>Marco</b> podés señalar lugares: arrastrá los extremos de la flecha hasta el punto exacto. Mirá el ejemplo <b>🏠 Casa inteligente</b>.</p>`, action: { label: 'Cargar ejemplo Casa inteligente', fn: () => App.loadExample(2) } },
+      <p>Elegí "Sin fondo" y desactivá "Mostrar título" en las propiedades para que los indicadores floten sobre la imagen. Con <b>➚ Flecha</b> y el elemento <b>Marco</b> podés señalar lugares: arrastrá los extremos de la flecha hasta el punto exacto. Mirá el ejemplo <b>🏠 Casa inteligente</b>.</p>`, action: { label: 'Cargar ejemplo Casa inteligente', fn: () => App.loadExample(2) } },
     { title: '8. Cámara + Teachable Machine', target: null, html: `
       <p>Entrená un modelo de imágenes en <a href="https://teachablemachine.withgoogle.com" target="_blank" rel="noopener">Teachable Machine</a> → <b>Exportar modelo</b> → <b>Subir (compartible)</b> → copiá el enlace.</p>
-      <p>Agregá el widget <b>📷 Cámara</b>, pegá la URL en sus propiedades e iniciá la cámara. Vas a tener las variables <code>camara_clase</code> y <code>camara_confianza</code>, y el evento <b>cuando la cámara detecta…</b> en los bloques.</p>`, action: { label: 'Agregar cámara', fn: () => Dashboard.add('camara') } },
+      <p>Agregá el elemento <b>Cámara</b>, pegá la URL en sus propiedades e iniciá la cámara. Vas a tener las variables <code>camara_clase</code> y <code>camara_confianza</code>, y el evento <b>cuando la cámara detecta…</b> en los bloques.</p>`, action: { label: 'Agregar cámara', fn: () => Dashboard.add('camara') } },
     { title: '9. Guardá tu proyecto', target: '#btn-project', html: `
       <p>Todo se autoguarda en este navegador, pero para llevarlo a otra computadora usá <b>Proyecto → Descargar archivo</b>. Se genera un <code>.json</code> con el panel, los bloques, el fondo y la configuración de datos.</p>
       <p>Para retomarlo: <b>Proyecto → Abrir archivo</b>. También podés <b>copiar un enlace</b> que lleva el proyecto adentro.</p>`, action: { label: 'Descargar archivo', fn: () => Project.download() } },

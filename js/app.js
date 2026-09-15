@@ -47,7 +47,7 @@
 
     /* ---------- menús ---------- */
     buildAddMenu() {
-      const m = $('#add-menu'); m.innerHTML = '';
+      const m = $('#add-menu'); m.innerHTML = '<div class="add-help">Los <b>elementos</b> son las piezas del panel: cada uno muestra una variable que llega del micro:bit (medidor, gráfico, luz…) o le manda órdenes (botón, deslizador). Elegí uno y después configuralo en Propiedades.</div>';
       for (const t in WidgetTypes) { const b = document.createElement('button'); b.innerHTML = `<i>${WidgetTypes[t].icon}</i><span>${Util.esc(WidgetTypes[t].name)}</span>`; b.onclick = () => { Dashboard.add(t); this.openProps(); }; m.appendChild(b); }
     },
     buildExamplesMenu() {
@@ -140,9 +140,9 @@
       this.dialog('🖼️ Fondo del panel', `
         <div class="field"><label>Color de fondo</label><input type="color" data-color value="${b.color || '#eef2f7'}"></div>
         <div class="field"><label>Imagen de fondo (URL o archivo)</label><div class="img-field"><input type="text" data-url placeholder="https://…" value="${b.image && !b.image.startsWith('data:') ? Util.esc(b.image) : (b.image ? '(archivo cargado)' : '')}"><input type="file" accept="image/*" data-file><button class="mini" data-clear>Quitar</button></div>
-        <small class="muted">Por ejemplo, un plano de la casa, una foto de la maqueta o un mapa. Los widgets se colocan encima; usá "Sin tarjeta" en sus propiedades.</small></div>
+        <small class="muted">Por ejemplo, un plano de la casa, una foto de la maqueta o un mapa. Los elementos se colocan encima; elegí "Sin fondo" en sus propiedades.</small></div>
         <div class="field"><label>Ajuste de la imagen</label><select data-fit>${[['cover', 'Recortar para llenar'], ['contain', 'Completa'], ['stretch', 'Estirar'], ['tile', 'Mosaico']].map(([v, l]) => `<option value="${v}" ${b.fit === v ? 'selected' : ''}>${l}</option>`).join('')}</select></div>
-        <div class="field"><label>Tamaño del panel (píxeles de diseño)</label><div class="row"><input type="number" data-w value="${Dashboard.width}" style="width:90px"> × <input type="number" data-h value="${Dashboard.height}" style="width:90px"><button class="mini" data-preset="1280,720">16:9</button><button class="mini" data-preset="1024,768">4:3</button><button class="mini" data-preset="1920,1080">Full HD</button><button class="mini" data-preset="720,1280">Vertical</button></div><small class="muted">El panel se escala solo para entrar en cualquier pantalla manteniendo la posición de los widgets sobre la imagen.</small></div>`,
+        <div class="field"><label>Tamaño del panel (píxeles de diseño)</label><div class="row"><input type="number" data-w value="${Dashboard.width}" style="width:90px"> × <input type="number" data-h value="${Dashboard.height}" style="width:90px"><button class="mini" data-preset="1280,720">16:9</button><button class="mini" data-preset="1024,768">4:3</button><button class="mini" data-preset="1920,1080">Full HD</button><button class="mini" data-preset="720,1280">Vertical</button></div><small class="muted">El panel se escala solo para entrar en cualquier pantalla manteniendo la posición de los elementos sobre la imagen.</small></div>`,
         d => {
           d.querySelector('[data-color]').oninput = ev => Dashboard.setBackground({ color: ev.target.value });
           d.querySelector('[data-url]').onchange = ev => Dashboard.setBackground({ image: ev.target.value.trim() });

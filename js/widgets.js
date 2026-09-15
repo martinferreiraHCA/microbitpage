@@ -622,7 +622,7 @@
     renderProps() {
       const panel = this.propsPanel; if (!panel) return;
       const w = this.selected && this.get(this.selected);
-      if (!w) { panel.innerHTML = '<div class="props-empty"><p>Seleccioná un widget del panel para editar sus propiedades.</p><p class="muted">Tip: arrastrá para mover, usá la esquina para cambiar el tamaño, doble clic para abrir propiedades.</p></div>'; return; }
+      if (!w) { panel.innerHTML = '<div class="props-empty"><p><b>Propiedades</b></p><p>Tocá un elemento del panel (un medidor, una luz, un botón…) para cambiar qué variable muestra, sus colores y sus reglas de alerta.</p><p class="muted">Tip: arrastrá para mover, usá la esquina para cambiar el tamaño, doble clic para abrir propiedades.</p></div>'; return; }
       const T = Types[w.type];
       const fields = [{ key: '__title', label: 'Título (nombre que usan los bloques)', type: 'text' }, ...T.schema, ...COMMON_TAIL.filter(f => !T.schema.some(s => s.key === f.key))];
       panel.innerHTML = `<div class="props-head"><span>${T.icon} ${Util.esc(T.name)}</span><button class="mini" data-close>✕</button></div>

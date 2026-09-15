@@ -17,7 +17,7 @@
   }
   function widgetOptions(types) {
     const ws = Dashboard.widgets.filter(w => !types || types.includes(w.type)).map(w => [w.title, w.title]);
-    return ws.length ? ws : [['(sin widgets)', '']];
+    return ws.length ? ws : [['(agregá elementos al panel)', '']];
   }
   /** Dropdown que conserva el valor guardado aunque ya no exista en las opciones. */
   function dyn(fn) {
@@ -48,11 +48,11 @@
     { type: 'sen_guardar', message0: 'guardar %1 en la variable del panel %2', args0: [{ type: 'input_value', name: 'VAL' }, { type: 'field_input', name: 'VAR', text: 'temp_f' }], previousStatement: null, nextStatement: null, colour: C.sensores, inputsInline: true, tooltip: 'Crea o actualiza una variable que pueden mostrar los widgets.' },
     { type: 'sen_mapear', message0: 'mapear %1 de %2 – %3 a %4 – %5', args0: [{ type: 'input_value', name: 'V', check: 'Number' }, { type: 'field_number', name: 'A', value: 0 }, { type: 'field_number', name: 'B', value: 1023 }, { type: 'field_number', name: 'C', value: 0 }, { type: 'field_number', name: 'D', value: 100 }], output: 'Number', colour: C.sensores, inputsInline: true },
     // ---- Panel ----
-    { type: 'pan_mostrar', message0: 'mostrar %1 en %2', args0: [{ type: 'input_value', name: 'VAL' }, { type: 'field_dropdown', name: 'W', options: dyn(() => widgetOptions()) }], previousStatement: null, nextStatement: null, colour: C.panel, inputsInline: true, tooltip: 'Envía un valor a un widget (número, medidor, texto, botón…).' },
+    { type: 'pan_mostrar', message0: 'mostrar %1 en %2', args0: [{ type: 'input_value', name: 'VAL' }, { type: 'field_dropdown', name: 'W', options: dyn(() => widgetOptions()) }], previousStatement: null, nextStatement: null, colour: C.panel, inputsInline: true, tooltip: 'Envía un valor a un elemento del panel (número, medidor, texto, botón…).' },
     { type: 'pan_luz', message0: 'luz %1 %2', args0: [{ type: 'field_dropdown', name: 'W', options: dyn(() => widgetOptions(['luz'])) }, { type: 'field_dropdown', name: 'ON', options: [['encendida', '1'], ['apagada', '0']] }], previousStatement: null, nextStatement: null, colour: C.panel },
     { type: 'pan_color', message0: 'poner color de %1 a %2', args0: [{ type: 'field_dropdown', name: 'W', options: dyn(() => widgetOptions()) }, { type: 'input_value', name: 'COL', check: 'Colour' }], previousStatement: null, nextStatement: null, colour: C.panel, inputsInline: true },
     { type: 'pan_texto', message0: 'poner texto de %1 a %2', args0: [{ type: 'field_dropdown', name: 'W', options: dyn(() => widgetOptions(['texto', 'boton'])) }, { type: 'input_value', name: 'TXT' }], previousStatement: null, nextStatement: null, colour: C.panel, inputsInline: true },
-    { type: 'pan_visible', message0: '%1 %2', args0: [{ type: 'field_dropdown', name: 'V', options: [['mostrar widget', '1'], ['ocultar widget', '0']] }, { type: 'field_dropdown', name: 'W', options: dyn(() => widgetOptions()) }], previousStatement: null, nextStatement: null, colour: C.panel },
+    { type: 'pan_visible', message0: '%1 %2', args0: [{ type: 'field_dropdown', name: 'V', options: [['mostrar elemento', '1'], ['ocultar elemento', '0']] }, { type: 'field_dropdown', name: 'W', options: dyn(() => widgetOptions()) }], previousStatement: null, nextStatement: null, colour: C.panel },
     { type: 'pan_imagen', message0: 'poner imagen de %1 desde URL %2', args0: [{ type: 'field_dropdown', name: 'W', options: dyn(() => widgetOptions(['imagen'])) }, { type: 'input_value', name: 'URL', check: 'String' }], previousStatement: null, nextStatement: null, colour: C.panel, inputsInline: true },
     { type: 'pan_fondo', message0: 'poner fondo del panel a %1', args0: [{ type: 'input_value', name: 'COL', check: 'Colour' }], previousStatement: null, nextStatement: null, colour: C.panel },
     // ---- Alertas ----

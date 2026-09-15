@@ -77,7 +77,7 @@
 
     toggle(on) {
       if (on === false || (on === undefined && this.running)) return this.stop();
-      const w = Dashboard.byType('camara')[0]; if (w) this.start(w); else Util.toast('Agregá un widget de cámara al panel', 'warn');
+      const w = Dashboard.byType('camara')[0]; if (w) this.start(w); else Util.toast('Agregá un elemento Cámara al panel', 'warn');
     },
     confidence(cls) { const p = this.preds.find(x => x.className.toLowerCase() === String(cls).toLowerCase()); return p ? Math.round(p.probability * 100) : 0; }
   };
