@@ -1,0 +1,63 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Demo: panel micro:bit embebido en otra página</title>
+  <style>
+    body { font-family: system-ui, sans-serif; margin: 0; background: #f8fafc; color: #111827; }
+    header { background: #0f172a; color: #fff; padding: 14px 20px; }
+    main { max-width: 1100px; margin: 0 auto; padding: 20px; }
+    .host { background: #fff; border: 1px solid #e5e7eb; border-radius: 12px; padding: 16px; margin-bottom: 16px; }
+    button { font: inherit; padding: 8px 12px; border-radius: 8px; border: 1px solid #cbd5e1; background: #fff; cursor: pointer; margin: 2px; }
+    button.primary { background: #2563eb; color: #fff; border-color: #2563eb; }
+    iframe { width: 100%; height: 620px; border: 0; border-radius: 12px; box-shadow: 0 8px 30px rgba(0,0,0,.15); }
+    pre { background: #0f172a; color: #e2e8f0; padding: 12px; border-radius: 8px; font-size: 12px; overflow: auto; }
+    #log { max-height: 140px; overflow: auto; font-family: monospace; font-size: 12px; background: #f1f5f9; padding: 8px; border-radius: 8px; }
+  </style>
+</head>
+<body>
+  <header><b>Página host de ejemplo</b> — simula un generador de código de micro:bit (ml-microbit, MakeCode, un blog…) que embebe el panel y le manda datos con <code>postMessage</code>.</header>
+  <main>
+    <div class="host">
+      <p>Esta página <b>no</b> tiene conexión propia; usa los botones para inyectar datos al panel embebido tal como lo haría una página que ya está conectada al micro:bit (por ejemplo, la clase detectada por un modelo de ml-microbit).</p>
+      <button class="primary" onclick="enviar('temp:' + (18 + Math.random()*20).toFixed(1) + ',luz:' + Math.round(Math.random()*255))">📡 Enviar línea de sensores</button>
+      <button onclick="enviar('temp:36,luz:10')">🔥 Enviar temperatura alta</button>
+      <button onclick="setVar('clase', ['quieto','saltando','agitando'][Math.floor(Math.random()*3)])">🤖 Enviar clase ML (ml-microbit)</button>
+      <button onclick="auto = !auto; this.textContent = auto ? '⏸ Detener automático' : '▶ Automático cada 1 s'">▶ Automático cada 1 s</button>
+      <button onclick="panel().postMessage({type:'mbp:mode', mode: modo = (modo === 'panel' ? 'editor' : 'panel')}, '*')">🔁 Alternar modo panel/editor</button>
+      <p><b>Mensajes recibidos desde el panel</b> (lo que los bloques quieren enviar al micro:bit, variables y alertas):</p>
+      <div id="log"></div>
+    </div>
+    <iframe id="panel" src="index.html?mode=panel&edit=0" allow="serial; camera; fullscreen"></iframe>
+    <div class="host">
+      <h3>Cómo se hace</h3>
+<pre>&lt;iframe src="https://TU-USUARIO.github.io/microbitpage/?mode=panel&amp;lock=1&amp;project=URL_DEL_JSON" allow="serial; camera; fullscreen"&gt;&lt;/iframe&gt;
+
+const panel = document.querySelector('iframe').contentWindow;
+panel.postMessage({ type: 'mbp:data', line: 'temp:23,luz:140' }, '*');   // una línea como la del micro:bit
+panel.postMessage({ type: 'mbp:setVar', name: 'clase', value: 'saltando' }, '*');
+panel.postMessage({ type: 'mbp:load', project: proyectoJSON }, '*');     // cargar un proyecto guardado
+window.addEventListener('message', ev =&gt; {
+  if (ev.data.type === 'mbp:send')  { /* enviar ev.data.text al micro:bit */ }
+  if (ev.data.type === 'mbp:alert') { /* ev.data.alert = {level, message} */ }
+  if (ev.data.type === 'mbp:var')   { /* ev.data.name, ev.data.value */ }
+});</pre>
+    </div>
+  </main>
+  <script>
+    let auto = false, modo = 'panel';
+    const panel = () => document.getElementById('panel').contentWindow;
+    const log = (t) => { const l = document.getElementById('log'); l.textContent = (t + '\n' + l.textContent).split('\n').slice(0, 30).join('\n'); };
+    function enviar(line) { panel().postMessage({ type: 'mbp:data', line }, '*'); }
+    function setVar(name, value) { panel().postMessage({ type: 'mbp:setVar', name, value }, '*'); }
+    setInterval(() => { if (auto) enviar('temp:' + (18 + Math.random() * 20).toFixed(1) + ',luz:' + Math.round(Math.random() * 255) + ',sonido:' + Math.round(Math.random() * 255)); }, 1000);
+    window.addEventListener('message', ev => {
+      const d = ev.data; if (!d || typeof d.type !== 'string' || !d.type.startsWith('mbp:')) return;
+      if (d.type === 'mbp:send') log('▶ hacia el micro:bit: ' + d.text);
+      else if (d.type === 'mbp:alert') log('🚨 alerta ' + d.alert.level + ': ' + d.alert.message);
+      else if (d.type === 'mbp:ready') log('✔ panel listo');
+    });
+  </script>
+</body>
+</html>
