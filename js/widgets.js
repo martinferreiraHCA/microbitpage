@@ -307,20 +307,30 @@
       update(body, w) { const img = body.querySelector('img'), p = w.props, src = w.state.src || p.src; if (img.getAttribute('src') !== (src || '')) img.src = src || ''; img.style.objectFit = p.fit; img.style.opacity = p.opacity; img.hidden = !src; body.querySelector('.img-empty').hidden = !!src; }
     },
     camara: {
-      name: 'Cámara (IA)', icon: '📷', w: 320, h: 320,
-      props: { modelUrl: '', mirror: true, showPreds: true, interval: 300 },
+      name: 'Cámara / IA', icon: '📷', w: 320, h: 360,
+      props: { source: 'ml', mlProject: '', modelUrl: '', mirror: true, showPreds: true, interval: 300, sendSerial: true, sendMin: 70 },
       schema: [
-        { key: 'modelUrl', label: 'URL del modelo de Teachable Machine', type: 'text', help: 'Ej: https://teachablemachine.withgoogle.com/models/xxxxx/  (Exportar → Subir modelo → copiar enlace). Vacío = solo cámara.' },
+        { key: 'source', label: 'Modelo a usar', type: 'select', options: [['ml', 'Proyecto entrenado en IA · ML micro:bit'], ['tm', 'Teachable Machine (URL)'], ['none', 'Solo cámara, sin modelo']] },
+        { key: 'mlProject', label: 'Proyecto de ML - micro:bit', type: 'mlproject', help: 'Se entrena en el botón "IA · ML micro:bit". Si queda vacío se usa el más reciente.' },
+        { key: 'modelUrl', label: 'URL del modelo de Teachable Machine', type: 'text', help: 'Solo si elegiste Teachable Machine: Exportar → Subir modelo → copiar enlace.' },
+        { key: 'sendSerial', label: 'Enviar al micro:bit cada vez que cambia la clase ("clase:NOMBRE,certeza:NN")', type: 'checkbox' },
+        { key: 'sendMin', label: 'Certeza mínima para enviar (%)', type: 'number', min: 0, max: 100 },
         { key: 'mirror', label: 'Espejar', type: 'checkbox' }, { key: 'showPreds', label: 'Mostrar clases detectadas', type: 'checkbox' },
         { key: 'interval', label: 'Intervalo de predicción (ms)', type: 'number', min: 100, max: 5000 },
       ],
       render(body, w) {
-        body.innerHTML = '<div class="cam-wrap"><video autoplay playsinline muted></video><div class="cam-overlay"><button class="mini cam-start">▶ Iniciar cámara</button></div></div><div class="cam-preds"></div>';
-        body.querySelector('.cam-start').addEventListener('click', () => TM.start(w));
+        body.innerHTML = '<div class="cam-wrap"><video autoplay playsinline muted></video><canvas class="cam-skeleton"></canvas><div class="cam-audio" hidden>🎤<small>escuchando</small></div><div class="cam-overlay"><button class="mini cam-start">▶ Iniciar cámara</button><small class="cam-hint"></small></div></div><div class="cam-preds"></div>';
+        body.querySelector('.cam-start').addEventListener('click', ev => { ev.stopPropagation(); TM.start(w); });
       },
       update(body, w) {
-        const p = w.props; body.querySelector('video').style.transform = p.mirror ? 'scaleX(-1)' : 'none';
-        body.querySelector('.cam-overlay').hidden = TM.running && TM.owner === w.id;
+        const p = w.props, mine = TM.running && TM.owner === w.id;
+        body.querySelector('video').style.transform = p.mirror ? 'scaleX(-1)' : 'none';
+        body.querySelector('.cam-skeleton').style.transform = p.mirror ? 'scaleX(-1)' : 'none';
+        body.querySelector('.cam-overlay').hidden = mine;
+        const isAudio = mine && TM.projectInfo && TM.projectInfo.type === 'audio';
+        body.querySelector('.cam-audio').hidden = !isAudio; body.querySelector('video').hidden = isAudio;
+        const hint = body.querySelector('.cam-hint');
+        if (!mine) { const src = p.source || 'ml'; const n = src === 'ml' ? TM.mlProjects().length : 0; hint.textContent = src === 'ml' ? (n ? (n + ' proyecto' + (n > 1 ? 's' : '') + ' entrenado' + (n > 1 ? 's' : '')) : 'Primero entrená un proyecto en IA · ML micro:bit') : src === 'tm' ? (p.modelUrl ? 'Teachable Machine' : 'Falta la URL del modelo') : 'solo video'; }
         const pr = body.querySelector('.cam-preds'); pr.hidden = !p.showPreds;
         if (p.showPreds) {
           const html = TM.preds.map(x => `<div class="pred"><span>${Util.esc(x.className)}</span><div class="pred-bar"><i style="width:${(x.probability * 100).toFixed(0)}%"></i></div><b>${(x.probability * 100).toFixed(0)}%</b></div>`).join('') || (TM.status ? `<div class="muted">${Util.esc(TM.status)}</div>` : '');
@@ -654,6 +664,12 @@
         input = document.createElement('textarea'); input.value = val == null ? '' : val; input.rows = 3; input.addEventListener('input', () => set(input.value));
       } else if (f.type === 'rules') {
         wrap.appendChild(this._rulesEditor(w, f)); return wrap;
+      } else if (f.type === 'mlproject') {
+        input = document.createElement('select');
+        const list = TM.mlProjects();
+        const o0 = document.createElement('option'); o0.value = ''; o0.textContent = list.length ? '(el más reciente: ' + list[0].name + ')' : '(todavía no hay proyectos entrenados)'; input.appendChild(o0);
+        list.forEach(p => { const o = document.createElement('option'); o.value = p.id; o.textContent = `${p.name} · ${p.type === 'image' ? 'imagen' : p.type === 'pose' ? 'pose' : 'audio'} · ${p.classNames.join(', ')}`; o.selected = String(val) === p.id; input.appendChild(o); });
+        input.addEventListener('change', () => set(input.value));
       } else if (f.type === 'var') {
         input = document.createElement('input'); input.type = 'text'; input.value = val == null ? '' : val; input.setAttribute('list', 'var-names');
         input.addEventListener('input', () => set(input.value.trim()));

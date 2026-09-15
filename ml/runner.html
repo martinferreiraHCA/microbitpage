@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+<meta charset="utf-8">
+<title>ML - micro:bit · motor de predicción para el panel</title>
+<!--
+  Archivo agregado por micro:bit Panel Lab (no forma parte de ML - micro:bit original).
+  Carga los mismos módulos de entrenamiento de la app y expone window.Runner para que
+  el panel (misma origen) ejecute los modelos entrenados de forma nativa: el video se
+  captura en el panel y acá solo se calculan las predicciones.
+-->
+<script src="js/regenerator-guard.js"></script>
+<script src="vendor/tfjs/tfjs-4.22.0.min.js"></script>
+<script src="vendor/speech-commands/speech-commands-0.5.4.min.js"></script>
+<script type="module" src="js/mediapipe-loader.js"></script>
+<script type="module">
+import * as image from './js/image-trainer.js';
+import * as pose from './js/pose-trainer.js';
+import * as audio from './js/audio-trainer.js';
+import { loadModels } from './js/project-store.js';
+
+const trainers = { image, pose, audio };
+let current = null;
+
+window.Runner = {
+  /** Proyectos con modelo entrenado, más reciente primero. */
+  list() {
+    return loadModels()
+      .filter(p => p.localModel && p.localModel.storageKey)
+      .map(p => ({ id: String(p.id), name: p.name, type: p.projectType, classNames: (p.localModel.classNames || p.classNames || []).slice(), trainedAt: p.localModel.trainedAt || '' }));
+  },
+  async load(id) {
+    const models = loadModels().filter(p => p.localModel && p.localModel.storageKey);
+    const p = id ? models.find(x => String(x.id) === String(id)) : models[0];
+    if (!p) throw new Error(id ? 'Ese proyecto no tiene un modelo entrenado' : 'No hay proyectos entrenados en ML - micro:bit');
+    this.unload();
+    const t = trainers[p.projectType] || image;
+    await t.loadSavedModel(p.localModel);
+    current = { type: p.projectType, id: String(p.id), classNames: p.localModel.classNames.slice(), t, name: p.name };
+    return { type: current.type, classNames: current.classNames, name: p.name, id: current.id };
+  },
+  async predict(source) {
+    if (!current || current.type === 'audio') return [];
+    return current.t.predict(source);
+  },
+  drawSkeleton(ctx, w, h, flip) {
+    if (!current || current.type !== 'pose') return;
+    const lm = current.t.getLastLandmarks(); if (!lm) return;
+    try { current.t.drawSkeleton(ctx, lm, w, h, !!flip); } catch (e) { /* opcional */ }
+  },
+  async startAudio(cb) { if (!current || current.type !== 'audio') return false; await current.t.startListening(cb); return true; },
+  stopAudio() { if (current && current.type === 'audio') current.t.stopListening(); },
+  unload() { if (current) { try { if (current.type === 'audio') current.t.stopListening(); current.t.dispose(); } catch (e) {} current = null; } },
+  info() { return current ? { type: current.type, classNames: current.classNames, name: current.name, id: current.id } : null; },
+  trainers, loadModels,
+};
+window.dispatchEvent(new Event('runner-ready'));
+</script>
+</head>
+<body></body>
+</html>

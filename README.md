@@ -58,27 +58,19 @@ En el programa que genera [ml-microbit.github.io](https://ml-microbit.github.io)
 
 La carpeta `ml/` contiene una copia íntegra de [ML - micro:bit](https://github.com/ml-microbit/ml-microbit.github.io) (Plan Ceibal): una app que entrena modelos de **imagen, audio o pose** en el navegador y le manda al micro:bit por **Bluetooth UART** la clase detectada (`Gato#87`). Se abre desde el botón **IA · ML micro:bit** (o con `?ml=1`) en una ventana que puede quedar **flotante o en miniatura sobre el panel**, para ver la cámara y los datos a la vez; mientras esté abierta la detección sigue activa. También se puede usar sola en `ml/index.html`.
 
-El panel **solo lee el cable serial**, así que el circuito es:
+**El panel ejecuta los modelos de forma nativa.** El modelo se entrena una vez en ML - micro:bit (queda en IndexedDB del navegador) y el elemento **Cámara / IA** del panel lo corre con la cámara de la computadora, usando los mismos módulos de entrenamiento a través de `ml/runner.html` (un motor oculto en la misma origen). No hace falta Bluetooth:
 
 ```
-ML - micro:bit ──Bluetooth──▶ micro:bit ──USB serial──▶ Panel Lab
-                              (reenvía "clase:Gato,certeza:87")
+ML - micro:bit (entrenar) ──▶ Cámara / IA del panel (detectar) ──▶ bloques ──USB serial──▶ micro:bit
+                                                                    "clase:Gato,certeza:87", "led:1", …
 ```
 
-Pasos (también en **Herramientas → Cómo conectar ML - micro:bit**, con el código listo para copiar):
+1. Entrenar el modelo en **IA · ML micro:bit** y volver al panel.
+2. Agregar **Cámara / IA**, elegir el proyecto entrenado (o "el más reciente") y presionar **▶ Iniciar cámara**. Publica `clase`, `certeza` y `camara_<clase>`; dispara el evento *cuando la cámara detecta…*.
+3. Cada cambio de clase se envía al micro:bit por serial como `clase:NOMBRE,certeza:NN` (configurable), y los bloques pueden mandar cualquier otra orden.
+4. En el micro:bit, un programa MakeCode lee el serial y actúa (**Herramientas → Cómo conectar ML - micro:bit** tiene el código). Ejemplo incluido: **Cámara con IA (ML - micro:bit)**.
 
-1. Entrenar el modelo en ML - micro:bit.
-2. Programar el micro:bit en el MakeCode integrado (extensión `iaMachine` ya cargada) con:
-   ```js
-   serial.setBaudRate(BaudRate.BaudRate115200)
-   iaMachine.alDetectarCualquierClase(0, function () {
-       serial.writeLine("clase:" + iaMachine.claseDetectada() + ",certeza:" + iaMachine.certezaDetectada())
-   })
-   ```
-3. Conectar el micro:bit por Bluetooth desde ML - micro:bit.
-4. Conectar el panel por USB. Llegan las variables `clase` y `certeza`, usables en textos (`{clase}`), luces con regla `= Gato`, alertas y bloques (*cuando clase cambia*). Ejemplo incluido: **ML - micro:bit por serial**.
-
-Se recomienda micro:bit V2 (Bluetooth y serial simultáneos). Para actualizar la copia, ver `ml/PROCEDENCIA.md`.
+Alternativa por Bluetooth (micro:bit lejos de la computadora): ML - micro:bit manda las clases por BLE con la extensión `iaMachine` y el micro:bit las reenvía al panel por serial; el mismo diálogo muestra ese programa. Para actualizar la copia de la app, ver `ml/PROCEDENCIA.md`.
 
 ## Embeber el panel en otra página
 

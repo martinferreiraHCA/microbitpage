@@ -38,7 +38,7 @@
       // Modo
       const mode = params.get('mode');
       this.setMode(mode === 'panel' ? 'panel' : 'editor');
-      if (mode === 'ml' || params.get('ml') === '1') this.mlOpen('max');
+      if (mode === 'ml' || params.get('ml') === '1') this.mlOpen();
       if (params.get('sim') === '1') Simulator.start();
       if (params.get('edit') === '0') Dashboard.setEditMode(false);
       window.addEventListener('hashchange', () => { if (location.hash.includes('p=')) Project.loadFromHash(); });
@@ -70,12 +70,10 @@
       document.querySelectorAll('[data-fullscreen]').forEach(b => b.onclick = () => this.fullscreen());
       document.querySelectorAll('[data-exit-panel]').forEach(b => b.onclick = () => this.setMode('editor'));
       $('#btn-panel-mode').onclick = () => this.setMode('panel');
-      $('#btn-ml').onclick = () => { const w = $('#ml-win'); if (w.hidden) this.mlOpen('max'); else this.mlOpen(w.classList.contains('max') ? 'normal' : 'max'); };
+      $('#btn-ml').onclick = () => { $('#ml-win').hidden ? this.mlOpen() : this.mlHide(); };
       $('#btn-ml-help').onclick = () => this.openMlHelp();
       $('#btn-ml-help2').onclick = () => this.openMlHelp();
-      document.querySelectorAll('[data-ml-size]').forEach(b => b.onclick = () => this.mlOpen(b.dataset.mlSize));
-      $('[data-ml-close]').onclick = () => this.mlClose();
-      this._bindMlDrag();
+      $('[data-ml-back]').onclick = () => this.mlHide();
       $('#btn-guide').onclick = () => Guide.toggle();
       $('#btn-props').onclick = () => this.openProps(true);
       $('#btn-lock').onclick = () => Dashboard.setEditMode(!Dashboard.editMode);
@@ -122,49 +120,20 @@
     }, 1500),
 
     /* ---------- modos ---------- */
-    /* ---------- ventana ML - micro:bit ---------- */
-    mlOpen(size) {
+    /* ---------- ML - micro:bit (entrenamiento) ---------- */
+    mlOpen() {
       const w = $('#ml-win'), f = $('#ml-frame');
-      if (!f.getAttribute('src')) f.src = 'ml/index.html';   // se carga una sola vez y queda viva
-      w.hidden = false; w.classList.remove('max', 'normal', 'mini'); w.classList.add(size);
-      w.querySelectorAll('[data-ml-size]').forEach(b => b.classList.toggle('on', b.dataset.mlSize === size));
-      if (size !== 'max') {
-        // posición por defecto: abajo a la derecha, sin tapar todo el panel
-        if (!w.dataset.placed) { const W = size === 'mini' ? 320 : Math.min(640, window.innerWidth * 0.45), H = size === 'mini' ? 260 : Math.min(520, window.innerHeight * 0.6); w.style.left = (window.innerWidth - W - 16) + 'px'; w.style.top = (window.innerHeight - H - 44) + 'px'; if (size !== 'mini') { w.style.width = W + 'px'; w.style.height = H + 'px'; } }
-        else if (size === 'normal' && w.dataset.w) { w.style.width = w.dataset.w; w.style.height = w.dataset.h; }
-        this._mlKeepInside();
-      }
-      $('#btn-ml').classList.add('active');
-      if (size === 'max') this.mode !== 'panel' && Guide.close();
+      if (!f.getAttribute('src')) f.src = 'ml/index.html';   // se carga una sola vez; al volver al panel queda cargada
+      w.hidden = false; $('#btn-ml').classList.add('active'); Guide.close();
     },
-    mlClose() {
-      if (!confirm('Se cierra ML - micro:bit y se detiene la detección (el micro:bit deja de recibir clases). ¿Cerrar?')) return;
-      const w = $('#ml-win'), f = $('#ml-frame'); w.hidden = true; f.removeAttribute('src'); f.src = 'about:blank'; f.removeAttribute('src');
-      $('#btn-ml').classList.remove('active');
-    },
-    _mlKeepInside() {
-      const w = $('#ml-win'); if (w.hidden || w.classList.contains('max')) return;
-      const r = w.getBoundingClientRect();
-      w.style.left = Util.clamp(r.left, 0, Math.max(0, window.innerWidth - r.width)) + 'px';
-      w.style.top = Util.clamp(r.top, 0, Math.max(0, window.innerHeight - 40)) + 'px';
-    },
-    _bindMlDrag() {
-      const w = $('#ml-win'), head = w.querySelector('.ml-head');
-      head.addEventListener('pointerdown', ev => {
-        if (ev.target.closest('button, a') || w.classList.contains('max') || ev.button !== 0) return;
-        ev.preventDefault(); w.classList.add('dragging'); w.dataset.placed = '1';
-        const r = w.getBoundingClientRect(), sx = ev.clientX - r.left, sy = ev.clientY - r.top;
-        const move = e => { w.style.left = (e.clientX - sx) + 'px'; w.style.top = (e.clientY - sy) + 'px'; };
-        const up = () => { window.removeEventListener('pointermove', move); window.removeEventListener('pointerup', up); w.classList.remove('dragging'); this._mlKeepInside(); };
-        window.addEventListener('pointermove', move); window.addEventListener('pointerup', up);
-      });
-      head.addEventListener('dblclick', ev => { if (!ev.target.closest('button, a')) this.mlOpen(w.classList.contains('max') ? 'normal' : 'max'); });
-      new ResizeObserver(() => { if (!w.hidden && w.classList.contains('normal')) { w.dataset.w = w.style.width; w.dataset.h = w.style.height; w.dataset.placed = '1'; } }).observe(w);
-      window.addEventListener('resize', () => this._mlKeepInside());
+    mlHide() {
+      $('#ml-win').hidden = true; $('#btn-ml').classList.remove('active');
+      Dashboard._dirty = true;   // refresca la lista de proyectos entrenados en los elementos Cámara / IA
+      if (Dashboard.selected) Dashboard.renderProps();
     },
 
     setMode(mode) {
-      if (mode === 'ml') { this.mlOpen('max'); mode = this.mode || 'editor'; }
+      if (mode === 'ml') { this.mlOpen(); mode = this.mode || 'editor'; }
       this.mode = mode; document.body.classList.toggle('panel-mode', mode === 'panel');
       document.body.classList.toggle('embedded', this.embedded); document.body.classList.toggle('locked', this.locked);
       if (mode === 'panel') { Dashboard.setEditMode(false); $('#props').classList.remove('open'); Guide.close(); if (this.autorun && !Runtime.running && !Blocks.isEmpty()) Runtime.start(); }
@@ -230,20 +199,20 @@
         });
     },
     openMlHelp() {
-      const code = MicrobitCode.mlBridgeCode();
-      this.dialog('Cómo conectar ML - micro:bit con el panel', `
-        <div class="flow"><span>ML - micro:bit</span><i>Bluetooth</i><span>micro:bit</span><i>cable USB (serial)</i><span>Panel Lab</span></div>
-        <p>La app <b>ML - micro:bit</b> entrena un modelo en la computadora y le manda al micro:bit, por Bluetooth, la clase detectada y su certeza (<code>Gato#87</code>). El panel <b>solo lee el cable serial</b>: por eso el micro:bit tiene que reenviar lo que recibe. Con este programa, el panel recibe las variables <code>clase</code> y <code>certeza</code> y podés usarlas en elementos, reglas de alerta y bloques.</p>
+      const code = MicrobitCode.serialReceiveCode(), ble = MicrobitCode.mlBridgeCode();
+      this.dialog('IA en el panel: entrenar, detectar y mandar órdenes al micro:bit', `
+        <div class="flow"><span>1. Entrenar en ML - micro:bit</span><i>→</i><span>2. Cámara / IA del panel detecta</span><i>→</i><span>3. Bloques</span><i>cable USB</i><span>micro:bit</span></div>
+        <p>El modelo se entrena una vez en <b>IA · ML micro:bit</b> y queda guardado en este navegador. Después, el elemento <b>Cámara / IA</b> del panel lo ejecuta con la cámara de la computadora, <b>sin Bluetooth y sin ventanas aparte</b>: publica las variables <code>clase</code> y <code>certeza</code>, y los bloques deciden qué mandarle al micro:bit por el cable.</p>
         <ol class="steps">
-          <li><b>Entrená el modelo.</b> Abrí <b>IA · ML micro:bit</b>, creá un proyecto (imagen, audio o pose), agregá 2 o más clases, capturá muestras y presioná <b>Entrenar</b>.</li>
-          <li><b>Programá el micro:bit.</b> En la pantalla de predicción de ML - micro:bit está el editor MakeCode con la extensión <b>iaMachine</b> ya cargada. Abrí la pestaña <b>JavaScript</b>, pegá el código de abajo y descargalo al micro:bit por USB (un micro:bit V2 es lo recomendado: Bluetooth y serial a la vez).</li>
-          <li><b>Conectá por Bluetooth.</b> En ML - micro:bit presioná <b>Conectar micro:bit</b> y elegí tu placa. Cuando el modelo detecta algo, el micro:bit lo recibe.</li>
-          <li><b>Conectá el panel por USB.</b> Presioná <b>Conectar micro:bit</b> en la barra superior (puerto serial). El Bluetooth y el cable son canales distintos, así que las dos conexiones conviven.</li>
-          <li><b>Dejá la cámara a la vista.</b> Con los botones ▢ o ▁ de la ventana de ML - micro:bit la convertís en una ventana flotante o una miniatura sobre el panel: podés moverla y cambiarle el tamaño, y la detección sigue activa. No la cierres con ✕ mientras trabajás (eso detiene la IA).</li>
-          <li><b>Usá los datos.</b> Agregá un <b>Texto</b> con <code>Veo: {clase} ({certeza} %)</code>, luces con la regla <i>si el valor = Gato → Peligro</i>, o bloques como <b>cuando clase cambia</b>. Mirá el ejemplo <b>Proyecto → Ejemplos → ML - micro:bit por serial</b>.</li>
+          <li><b>Entrená el modelo.</b> Abrí <b>IA · ML micro:bit</b>, creá un proyecto (imagen, audio o pose), agregá 2 o más clases, capturá muestras y presioná <b>Entrenar</b>. Volvé al panel con <b>← Volver al panel</b>.</li>
+          <li><b>Agregá Cámara / IA al panel</b> (+ Agregar elemento). En sus propiedades, <i>Modelo a usar</i> = "Proyecto entrenado en IA · ML micro:bit" y elegí el proyecto (o dejá "el más reciente"). Presioná <b>▶ Iniciar cámara</b> dentro del elemento y aceptá el permiso de cámara.</li>
+          <li><b>Mirá las detecciones.</b> El elemento muestra el video y las clases con su porcentaje. Podés mostrar <code>{clase}</code> en un Texto, poner luces con la regla <i>si el valor = Gato</i> o un medidor con <code>certeza</code>.</li>
+          <li><b>Programá qué hace el micro:bit.</b> Con los bloques: <b>cuando la cámara detecta [Gato]</b> → <b>enviar led:1 al micro:bit</b>, o <b>cuando clase cambia</b> → <b>enviar clase : valor de clase</b>. Además, el elemento Cámara / IA puede mandar solo <code>clase:Gato,certeza:87</code> cada vez que cambia la clase (opción "Enviar al micro:bit", activada por defecto).</li>
+          <li><b>Programá el micro:bit para recibir.</b> Conectalo por USB (<b>Conectar micro:bit</b>) y cargale un programa que lea el serial. El de abajo muestra la clase en la pantalla y podés cambiar qué hace con cada una. Se genera completo en <b>Herramientas → Código para el micro:bit</b>.</li>
         </ol>
-        <div class="field"><label>Programa para el micro:bit (MakeCode → JavaScript). Si usás MakeCode fuera de la app, agregá la extensión desde <i>Extensiones</i> pegando <code>https://github.com/snan-microbit/pxt-tm-microbit-link-v2</code>.</label><pre class="code">${Util.esc(code)}</pre><button class="mini" data-copy>Copiar código</button></div>
-        <p class="muted">Si además el micro:bit lee sensores, sumalos en el mismo programa: <b>Herramientas → Código para el micro:bit</b> arma todo junto (marcá la opción "reenviar clases de ML - micro:bit").</p>`,
+        <div class="field"><label>Programa para el micro:bit (MakeCode → pestaña JavaScript)</label><pre class="code">${Util.esc(code)}</pre><button class="mini" data-copy>Copiar código</button></div>
+        <details><summary class="muted">Alternativa: que ML - micro:bit mande las clases por Bluetooth y el micro:bit las reenvíe al panel por el cable</summary>
+          <p class="muted">Sirve si el micro:bit está lejos de la computadora. En ML - micro:bit conectá por Bluetooth y cargá este programa (extensión iaMachine, ya incluida en su MakeCode). Requiere micro:bit V2.</p><pre class="code">${Util.esc(ble)}</pre></details>`,
         d => { d.querySelector('[data-copy]').onclick = () => navigator.clipboard.writeText(code).then(() => Util.toast('Código copiado', 'ok')); });
     },
     openMicrobitCode() { this.dialog('🧠 Código para el micro:bit', '<div data-mc></div>', d => MicrobitCode.render(d.querySelector('[data-mc]'))); },

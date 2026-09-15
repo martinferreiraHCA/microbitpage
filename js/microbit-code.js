@@ -45,6 +45,35 @@
       '    serial.writeLine("ml:desconectado")',
       '})',
     ],
+    /** Programa mínimo que recibe "clase:NOMBRE,certeza:NN" del panel por serial. */
+    serialReceiveCode() {
+      return [
+        '// Recibe las clases que el panel detecta con la cámara (generado por micro:bit Panel Lab)',
+        'serial.setBaudRate(BaudRate.BaudRate115200)',
+        'let clase = ""',
+        'let certeza = 0',
+        'serial.onDataReceived(serial.delimiters(Delimiters.NewLine), function () {',
+        '    let linea = serial.readUntil(serial.delimiters(Delimiters.NewLine)).trim()',
+        '    // el panel manda "clase:Gato,certeza:87"; los bloques pueden mandar lo que quieras',
+        '    if (linea.indexOf("clase:") == 0) {',
+        '        let partes = linea.substr(6).split(",")',
+        '        clase = partes[0]',
+        '        certeza = parseInt(partes[1].split(":")[1])',
+        '        if (clase == "Clase 1") {',
+        '            basic.showIcon(IconNames.Happy)',
+        '        } else if (clase == "Clase 2") {',
+        '            basic.showIcon(IconNames.Sad)',
+        '        } else {',
+        '            basic.showString(clase)',
+        '        }',
+        '    } else if (linea == "led:1") {',
+        '        basic.showIcon(IconNames.Heart)',
+        '    } else if (linea == "led:0") {',
+        '        basic.clearScreen()',
+        '    }',
+        '})',
+      ].join('\n');
+    },
     mlBridgeCode() {
       return ['// Puente ML - micro:bit → panel (generado por micro:bit Panel Lab)', 'serial.setBaudRate(BaudRate.BaudRate115200)', ''].concat(this.ML_FORWARD).join('\n');
     },
@@ -56,7 +85,11 @@
         L.push('// Recibe órdenes del panel (ej: "led:1")', 'serial.onDataReceived(serial.delimiters(Delimiters.NewLine), function () {',
           '    let linea = serial.readUntil(serial.delimiters(Delimiters.NewLine)).trim()',
           '    let partes = linea.split(":")',
-          '    if (partes[0] == "led") {',
+          '    if (partes[0] == "clase") {',
+          '        // el panel detectó una clase con la cámara: "clase:Gato,certeza:87"',
+          '        let clase = linea.substr(6).split(",")[0]',
+          '        basic.showString(clase)',
+          '    } else if (partes[0] == "led") {',
           '        if (parseInt(partes[1]) == 1) basic.showIcon(IconNames.Heart)',
           '        else basic.clearScreen()',
           '    } else {',
@@ -95,7 +128,7 @@
           <div class="row"><button class="mini" data-add>+ Agregar sensor</button>
             <label>Cada <input type="number" data-interval value="${this.interval}" min="50" step="50" style="width:70px"> ms</label>
             <label><input type="checkbox" data-receive ${this.receive ? 'checked' : ''}> recibir órdenes del panel</label>
-            <label><input type="checkbox" data-ml ${this.mlEvent ? 'checked' : ''}> reenviar clases de ML - micro:bit (Bluetooth → serial)</label></div>
+            <label><input type="checkbox" data-ml ${this.mlEvent ? 'checked' : ''}> avanzado: reenviar clases recibidas por Bluetooth (iaMachine)</label></div>
           <div class="mc-tabs"><button class="mini active" data-tab="js">MakeCode (JavaScript)</button><button class="mini" data-tab="py">MicroPython</button><button class="mini" data-copy>📋 Copiar</button></div>
           <pre class="code" data-code></pre>`;
         const pre = el.querySelector('[data-code]'); let tab = 'js';
