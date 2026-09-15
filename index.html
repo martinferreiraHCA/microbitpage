@@ -70,21 +70,24 @@
         <button class="btn" data-fullscreen>⛶</button>
         <button class="btn exit" data-exit-panel>Editar</button>
       </div>
+      <div id="ml-win" class="ml-win" hidden>
+        <div class="ml-head">
+          <span class="ml-title">ML - micro:bit</span>
+          <span class="ml-hint">entrená un modelo y conectalo al micro:bit por Bluetooth · la detección sigue activa mientras esta ventana esté abierta</span>
+          <span class="ml-spacer"></span>
+          <button class="mini" id="btn-ml-help2" title="Cómo llega al panel">¿Cómo llega al panel?</button>
+          <a class="mini" href="ml/index.html" target="_blank" rel="noopener" title="Abrir en pestaña nueva">↗</a>
+          <button class="mini" data-ml-size="mini" title="Ventana chica (miniatura de la cámara)">▁</button>
+          <button class="mini" data-ml-size="normal" title="Ventana flotante sobre el panel">▢</button>
+          <button class="mini" data-ml-size="max" title="Pantalla completa dentro de la plataforma">⛶</button>
+          <button class="mini danger" data-ml-close title="Cerrar ML - micro:bit (detiene la detección)">✕</button>
+        </div>
+        <iframe id="ml-frame" title="ML - micro:bit" allow="camera; microphone; bluetooth; serial; fullscreen"></iframe>
+      </div>
     </section>
     <aside id="props" class="drawer"></aside>
     <aside id="guide" class="drawer"></aside>
   </main>
-
-  <section id="ml-pane" hidden>
-    <div class="pane-head">
-      <span>ML - micro:bit</span><span class="muted-inline">entrená un modelo de imagen, audio o pose y conectalo al micro:bit por Bluetooth</span>
-      <div class="spacer"></div>
-      <button class="btn ghost" id="btn-ml-help2">¿Cómo llega al panel?</button>
-      <a class="btn ghost" href="ml/index.html" target="_blank" rel="noopener">Abrir en pestaña nueva ↗</a>
-      <button class="btn primary" id="btn-ml-back">← Volver al panel</button>
-    </div>
-    <iframe id="ml-frame" title="ML - micro:bit" allow="camera; microphone; bluetooth; serial; fullscreen"></iframe>
-  </section>
 
   <footer id="statusbar">
     <span>Serial: <code id="st-line">esperando datos…</code> <small id="st-src"></small></span>

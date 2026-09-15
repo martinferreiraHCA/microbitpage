@@ -56,7 +56,7 @@ En el programa que genera [ml-microbit.github.io](https://ml-microbit.github.io)
 
 ## ML - micro:bit integrado (IA)
 
-La carpeta `ml/` contiene una copia íntegra de [ML - micro:bit](https://github.com/ml-microbit/ml-microbit.github.io) (Plan Ceibal): una app que entrena modelos de **imagen, audio o pose** en el navegador y le manda al micro:bit por **Bluetooth UART** la clase detectada (`Gato#87`). Se abre desde el botón **IA · ML micro:bit** o en `ml/index.html`.
+La carpeta `ml/` contiene una copia íntegra de [ML - micro:bit](https://github.com/ml-microbit/ml-microbit.github.io) (Plan Ceibal): una app que entrena modelos de **imagen, audio o pose** en el navegador y le manda al micro:bit por **Bluetooth UART** la clase detectada (`Gato#87`). Se abre desde el botón **IA · ML micro:bit** (o con `?ml=1`) en una ventana que puede quedar **flotante o en miniatura sobre el panel**, para ver la cámara y los datos a la vez; mientras esté abierta la detección sigue activa. También se puede usar sola en `ml/index.html`.
 
 El panel **solo lee el cable serial**, así que el circuito es:
 

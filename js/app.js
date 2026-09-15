@@ -37,7 +37,8 @@
 
       // Modo
       const mode = params.get('mode');
-      this.setMode(mode === 'panel' ? 'panel' : mode === 'ml' ? 'ml' : 'editor');
+      this.setMode(mode === 'panel' ? 'panel' : 'editor');
+      if (mode === 'ml' || params.get('ml') === '1') this.mlOpen('max');
       if (params.get('sim') === '1') Simulator.start();
       if (params.get('edit') === '0') Dashboard.setEditMode(false);
       window.addEventListener('hashchange', () => { if (location.hash.includes('p=')) Project.loadFromHash(); });
@@ -69,10 +70,12 @@
       document.querySelectorAll('[data-fullscreen]').forEach(b => b.onclick = () => this.fullscreen());
       document.querySelectorAll('[data-exit-panel]').forEach(b => b.onclick = () => this.setMode('editor'));
       $('#btn-panel-mode').onclick = () => this.setMode('panel');
-      $('#btn-ml').onclick = () => this.setMode(this.mode === 'ml' ? 'editor' : 'ml');
-      $('#btn-ml-back').onclick = () => this.setMode('editor');
+      $('#btn-ml').onclick = () => { const w = $('#ml-win'); if (w.hidden) this.mlOpen('max'); else this.mlOpen(w.classList.contains('max') ? 'normal' : 'max'); };
       $('#btn-ml-help').onclick = () => this.openMlHelp();
       $('#btn-ml-help2').onclick = () => this.openMlHelp();
+      document.querySelectorAll('[data-ml-size]').forEach(b => b.onclick = () => this.mlOpen(b.dataset.mlSize));
+      $('[data-ml-close]').onclick = () => this.mlClose();
+      this._bindMlDrag();
       $('#btn-guide').onclick = () => Guide.toggle();
       $('#btn-props').onclick = () => this.openProps(true);
       $('#btn-lock').onclick = () => Dashboard.setEditMode(!Dashboard.editMode);
@@ -119,16 +122,55 @@
     }, 1500),
 
     /* ---------- modos ---------- */
+    /* ---------- ventana ML - micro:bit ---------- */
+    mlOpen(size) {
+      const w = $('#ml-win'), f = $('#ml-frame');
+      if (!f.getAttribute('src')) f.src = 'ml/index.html';   // se carga una sola vez y queda viva
+      w.hidden = false; w.classList.remove('max', 'normal', 'mini'); w.classList.add(size);
+      w.querySelectorAll('[data-ml-size]').forEach(b => b.classList.toggle('on', b.dataset.mlSize === size));
+      if (size !== 'max') {
+        // posición por defecto: abajo a la derecha, sin tapar todo el panel
+        if (!w.dataset.placed) { const W = size === 'mini' ? 320 : Math.min(640, window.innerWidth * 0.45), H = size === 'mini' ? 260 : Math.min(520, window.innerHeight * 0.6); w.style.left = (window.innerWidth - W - 16) + 'px'; w.style.top = (window.innerHeight - H - 44) + 'px'; if (size !== 'mini') { w.style.width = W + 'px'; w.style.height = H + 'px'; } }
+        else if (size === 'normal' && w.dataset.w) { w.style.width = w.dataset.w; w.style.height = w.dataset.h; }
+        this._mlKeepInside();
+      }
+      $('#btn-ml').classList.add('active');
+      if (size === 'max') this.mode !== 'panel' && Guide.close();
+    },
+    mlClose() {
+      if (!confirm('Se cierra ML - micro:bit y se detiene la detección (el micro:bit deja de recibir clases). ¿Cerrar?')) return;
+      const w = $('#ml-win'), f = $('#ml-frame'); w.hidden = true; f.removeAttribute('src'); f.src = 'about:blank'; f.removeAttribute('src');
+      $('#btn-ml').classList.remove('active');
+    },
+    _mlKeepInside() {
+      const w = $('#ml-win'); if (w.hidden || w.classList.contains('max')) return;
+      const r = w.getBoundingClientRect();
+      w.style.left = Util.clamp(r.left, 0, Math.max(0, window.innerWidth - r.width)) + 'px';
+      w.style.top = Util.clamp(r.top, 0, Math.max(0, window.innerHeight - 40)) + 'px';
+    },
+    _bindMlDrag() {
+      const w = $('#ml-win'), head = w.querySelector('.ml-head');
+      head.addEventListener('pointerdown', ev => {
+        if (ev.target.closest('button, a') || w.classList.contains('max') || ev.button !== 0) return;
+        ev.preventDefault(); w.classList.add('dragging'); w.dataset.placed = '1';
+        const r = w.getBoundingClientRect(), sx = ev.clientX - r.left, sy = ev.clientY - r.top;
+        const move = e => { w.style.left = (e.clientX - sx) + 'px'; w.style.top = (e.clientY - sy) + 'px'; };
+        const up = () => { window.removeEventListener('pointermove', move); window.removeEventListener('pointerup', up); w.classList.remove('dragging'); this._mlKeepInside(); };
+        window.addEventListener('pointermove', move); window.addEventListener('pointerup', up);
+      });
+      head.addEventListener('dblclick', ev => { if (!ev.target.closest('button, a')) this.mlOpen(w.classList.contains('max') ? 'normal' : 'max'); });
+      new ResizeObserver(() => { if (!w.hidden && w.classList.contains('normal')) { w.dataset.w = w.style.width; w.dataset.h = w.style.height; w.dataset.placed = '1'; } }).observe(w);
+      window.addEventListener('resize', () => this._mlKeepInside());
+    },
+
     setMode(mode) {
+      if (mode === 'ml') { this.mlOpen('max'); mode = this.mode || 'editor'; }
       this.mode = mode; document.body.classList.toggle('panel-mode', mode === 'panel');
-      document.body.classList.toggle('ml-mode', mode === 'ml');
-      $('#ml-pane').hidden = mode !== 'ml'; $('#btn-ml').classList.toggle('active', mode === 'ml');
-      if (mode === 'ml') { const f = $('#ml-frame'); if (!f.getAttribute('src')) f.src = 'ml/index.html'; }
       document.body.classList.toggle('embedded', this.embedded); document.body.classList.toggle('locked', this.locked);
       if (mode === 'panel') { Dashboard.setEditMode(false); $('#props').classList.remove('open'); Guide.close(); if (this.autorun && !Runtime.running && !Blocks.isEmpty()) Runtime.start(); }
       else Dashboard.setEditMode(true);
       setTimeout(() => { Dashboard.layout(); Blocks.resize(); }, 30);
-      const u = new URL(location.href); if (mode === 'panel' || mode === 'ml') u.searchParams.set('mode', mode); else u.searchParams.delete('mode'); history.replaceState(null, '', u);
+      const u = new URL(location.href); if (mode === 'panel') u.searchParams.set('mode', 'panel'); else u.searchParams.delete('mode'); history.replaceState(null, '', u);
     },
     fullscreen() {
       const el = $('#dash-pane');
@@ -196,7 +238,8 @@
           <li><b>Entrená el modelo.</b> Abrí <b>IA · ML micro:bit</b>, creá un proyecto (imagen, audio o pose), agregá 2 o más clases, capturá muestras y presioná <b>Entrenar</b>.</li>
           <li><b>Programá el micro:bit.</b> En la pantalla de predicción de ML - micro:bit está el editor MakeCode con la extensión <b>iaMachine</b> ya cargada. Abrí la pestaña <b>JavaScript</b>, pegá el código de abajo y descargalo al micro:bit por USB (un micro:bit V2 es lo recomendado: Bluetooth y serial a la vez).</li>
           <li><b>Conectá por Bluetooth.</b> En ML - micro:bit presioná <b>Conectar micro:bit</b> y elegí tu placa. Cuando el modelo detecta algo, el micro:bit lo recibe.</li>
-          <li><b>Conectá el panel por USB.</b> Volvé al panel y presioná <b>Conectar micro:bit</b> (puerto serial). El Bluetooth y el cable son canales distintos, así que las dos conexiones conviven.</li>
+          <li><b>Conectá el panel por USB.</b> Presioná <b>Conectar micro:bit</b> en la barra superior (puerto serial). El Bluetooth y el cable son canales distintos, así que las dos conexiones conviven.</li>
+          <li><b>Dejá la cámara a la vista.</b> Con los botones ▢ o ▁ de la ventana de ML - micro:bit la convertís en una ventana flotante o una miniatura sobre el panel: podés moverla y cambiarle el tamaño, y la detección sigue activa. No la cierres con ✕ mientras trabajás (eso detiene la IA).</li>
           <li><b>Usá los datos.</b> Agregá un <b>Texto</b> con <code>Veo: {clase} ({certeza} %)</code>, luces con la regla <i>si el valor = Gato → Peligro</i>, o bloques como <b>cuando clase cambia</b>. Mirá el ejemplo <b>Proyecto → Ejemplos → ML - micro:bit por serial</b>.</li>
         </ol>
         <div class="field"><label>Programa para el micro:bit (MakeCode → JavaScript). Si usás MakeCode fuera de la app, agregá la extensión desde <i>Extensiones</i> pegando <code>https://github.com/snan-microbit/pxt-tm-microbit-link-v2</code>.</label><pre class="code">${Util.esc(code)}</pre><button class="mini" data-copy>Copiar código</button></div>

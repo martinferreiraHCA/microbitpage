@@ -39,6 +39,7 @@
     { title: '8b. IA con ML - micro:bit', target: '#btn-ml', html: `
       <p>La plataforma incluye <b>ML - micro:bit</b> (botón <b>IA · ML micro:bit</b>): entrenás un modelo de imagen, audio o pose y la app le manda al micro:bit por <b>Bluetooth</b> la clase detectada.</p>
       <p>El panel solo lee el <b>cable USB (serial)</b>, así que el micro:bit reenvía lo que recibe: en <b>Herramientas → Cómo conectar ML - micro:bit</b> está el programa listo para copiar y los pasos.</p>
+      <p>La app se abre en una ventana que podés <b>hacer flotante (▢) o miniatura (▁)</b> sobre el panel para seguir viendo la cámara mientras mirás los datos; mientras esté abierta, la detección sigue funcionando.</p>
       <p>Del lado del panel vas a recibir <code>clase</code> y <code>certeza</code>: mostralas con un <b>Texto</b>, una <b>Luz</b> por clase (regla <i>= Gato</i>) o el bloque <b>cuando clase cambia</b>.</p>`, action: { label: 'Ver cómo se conecta', fn: () => App.openMlHelp() } },
     { title: '9. Guardá tu proyecto', target: '#btn-project', html: `
       <p>Todo se autoguarda en este navegador, pero para llevarlo a otra computadora usá <b>Proyecto → Descargar archivo</b>. Se genera un <code>.json</code> con el panel, los bloques, el fondo y la configuración de datos.</p>
