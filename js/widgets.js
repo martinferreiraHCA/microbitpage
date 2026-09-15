@@ -16,7 +16,7 @@
       a = Object.assign({ level: 'info', message: '', source: '', time: Date.now() }, a);
       this.list.push(a); if (this.list.length > this.max) this.list.shift();
       Bus.emit('alert', a);
-      Util.toast(a.message, a.level === 'danger' ? 'error' : a.level === 'warn' ? 'warn' : a.level === 'ok' ? 'ok' : 'info');
+      if (!Dashboard.byType('alertas').length) Util.toast(a.message, a.level === 'danger' ? 'error' : a.level === 'warn' ? 'warn' : a.level === 'ok' ? 'ok' : 'info');
       if (this.sound && a.level === 'danger') Util.beep('peligro');
       else if (this.sound && a.level === 'warn') Util.beep('alarma');
       return a;
@@ -63,13 +63,12 @@
   const RULE_FIELD = { key: 'rules', label: 'Reglas de alerta', type: 'rules', help: 'Se evalúa la primera regla que se cumpla. Cambia el color y genera una alerta.' };
   const COMMON_TAIL = [
     { key: 'showTitle', label: 'Mostrar título', type: 'checkbox' },
-    { key: 'transparent', label: 'Sin tarjeta (fondo transparente)', type: 'checkbox' },
   ];
 
   /* ---------- Tipos de widgets ---------- */
   const Types = {
     valor: {
-      name: 'Valor numérico', icon: '🔢', w: 220, h: 140,
+      name: 'Valor numérico', icon: '🔢', w: 220, h: 220,
       props: { source: 'temp', unit: '', decimals: 1, color: '#111827', rules: [] },
       schema: [
         { key: 'source', label: 'Variable (sensor)', type: 'var' },
@@ -78,7 +77,7 @@
         { key: 'color', label: 'Color del texto', type: 'color' },
         RULE_FIELD,
       ],
-      render(body) { body.innerHTML = '<div class="v-big"><span class="v-num">—</span><span class="v-unit"></span></div><div class="v-msg"></div>'; },
+      render(body) { body.innerHTML = '<div class="v-big"><span class="v-num">—</span><span class="v-unit"></span></div><div class="v-msg" hidden></div>'; },
       update(body, w, r) {
         const v = Vars.has(w.props.source) ? Vars.get(w.props.source) : null;
         const txt = v == null ? '—' : Util.fmt(v, w.props.decimals);
@@ -86,12 +85,12 @@
         body.querySelector('.v-unit').textContent = w.props.unit || '';
         const num = body.querySelector('.v-num');
         num.style.color = r.rule ? LEVEL_COLOR[r.rule.level] : (w.props.color || '#111827');
-        fitText(body.querySelector('.v-big'), txt + (w.props.unit || ''), r.w - 16, r.h - 30, 96);
-        body.querySelector('.v-msg').textContent = r.rule ? r.rule.message : '';
+        const msg = body.querySelector('.v-msg'); msg.textContent = r.rule ? r.rule.message : ''; msg.hidden = !r.rule;
+        fitText(body.querySelector('.v-big'), txt + (w.props.unit ? ' ' + w.props.unit : ''), r.w, r.h - (r.rule ? 18 : 0), 96);
       }
     },
     medidor: {
-      name: 'Medidor', icon: '🎚️', w: 220, h: 170,
+      name: 'Medidor', icon: '🎚️', w: 220, h: 220,
       props: { source: 'temp', min: 0, max: 100, unit: '', decimals: 0, color: '#3b82f6', rules: [] },
       schema: [
         { key: 'source', label: 'Variable (sensor)', type: 'var' },
@@ -116,7 +115,7 @@
       }
     },
     barra: {
-      name: 'Barra de nivel', icon: '📊', w: 120, h: 220,
+      name: 'Barra de nivel', icon: '📊', w: 220, h: 220,
       props: { source: 'luz', min: 0, max: 255, orientation: 'v', unit: '', color: '#22c55e', rules: [] },
       schema: [
         { key: 'source', label: 'Variable (sensor)', type: 'var' },
@@ -137,7 +136,7 @@
       }
     },
     grafico: {
-      name: 'Gráfico', icon: '📈', w: 420, h: 240,
+      name: 'Gráfico', icon: '📈', w: 460, h: 220,
       props: { sources: 'temp,luz', maxPoints: 60, minY: '', maxY: '', showLegend: true, fill: true },
       schema: [
         { key: 'sources', label: 'Variables (separadas por coma)', type: 'text', help: 'Ej: temp,luz' },
@@ -178,7 +177,7 @@
       }
     },
     luz: {
-      name: 'Luz indicadora', icon: '💡', w: 120, h: 120,
+      name: 'Luz indicadora', icon: '💡', w: 160, h: 160,
       props: { source: 'temp', mode: 'regla', colorOn: '#22c55e', colorOff: '#4b5563', label: '', rules: [{ op: '>', value: 30, level: 'danger', message: '¡Valor alto!' }], showTitle: false },
       schema: [
         { key: 'mode', label: 'Se controla por', type: 'select', options: [['regla', 'Reglas sobre una variable'], ['bloques', 'Bloques (programa)']] },
@@ -194,14 +193,16 @@
         if (p.mode === 'bloques') { on = !!st.on; color = st.color || p.colorOn; }
         else { on = !!r.rule; color = r.rule ? LEVEL_COLOR[r.rule.level] : p.colorOn; }
         const dot = body.querySelector('.led-dot');
-        const size = Math.max(16, Math.min(r.w, r.h - (p.label ? 22 : 0)) - 28);
+        const label = p.label || (p.mode === 'regla' && r.rule ? r.rule.message : '');
+        const showLabel = !!label && r.h >= 60;
+        const size = Math.max(14, Math.min(r.w, r.h - (showLabel ? 20 : 0)) * 0.62);
         dot.style.width = dot.style.height = size + 'px';
-        dot.style.background = on ? color : p.colorOff; dot.style.boxShadow = on ? `0 0 ${size / 2}px ${color}` : 'inset 0 2px 6px rgba(0,0,0,.4)';
-        body.querySelector('.led-label').textContent = p.label || (p.mode === 'regla' && r.rule ? r.rule.message : '');
+        dot.style.background = on ? color : p.colorOff; dot.style.boxShadow = on ? `0 0 ${size / 3}px ${color}66` : 'inset 0 2px 6px rgba(0,0,0,.25)';
+        const lab = body.querySelector('.led-label'); lab.textContent = showLabel ? label : ''; lab.hidden = !showLabel;
       }
     },
     texto: {
-      name: 'Texto', icon: '🔤', w: 300, h: 70,
+      name: 'Texto', icon: '🔤', w: 460, h: 60,
       props: { text: 'Temperatura: {temp} °C', size: 24, color: '#111827', align: 'left', bold: false, bg: '', showTitle: false, transparent: true },
       schema: [
         { key: 'text', label: 'Texto (usá {variable} para insertar valores, {variable|1} con decimales, {hora})', type: 'textarea' },
@@ -220,7 +221,7 @@
       }
     },
     boton: {
-      name: 'Botón', icon: '🔘', w: 160, h: 70,
+      name: 'Botón', icon: '🔘', w: 220, h: 120,
       props: { label: 'Encender', color: '#3b82f6', send: 'led:1', showTitle: false, transparent: true },
       schema: [
         { key: 'label', label: 'Texto del botón', type: 'text' }, { key: 'color', label: 'Color', type: 'color' },
@@ -239,7 +240,7 @@
       update(body, w, r) { const b = body.querySelector('button'); b.textContent = w.state.text != null ? w.state.text : w.props.label; b.style.background = w.state.color || w.props.color; b.style.fontSize = Math.max(12, Math.min(r.h * 0.38, (r.w * 1.6) / Math.max(4, b.textContent.length), 28)) + 'px'; }
     },
     deslizador: {
-      name: 'Deslizador', icon: '🎛️', w: 260, h: 80,
+      name: 'Deslizador', icon: '🎛️', w: 220, h: 120,
       props: { variable: 'brillo', min: 0, max: 255, step: 1, send: true, color: '#3b82f6' },
       schema: [
         { key: 'variable', label: 'Nombre de la variable', type: 'text' },
@@ -260,7 +261,7 @@
       update(body, w) { const p = w.props, inp = body.querySelector('input'); inp.min = p.min; inp.max = p.max; inp.step = p.step || 1; inp.style.accentColor = p.color; if (document.activeElement !== inp && Vars.has(p.variable)) { inp.value = Vars.get(p.variable); body.querySelector('.slider-val').textContent = inp.value; } }
     },
     interruptor: {
-      name: 'Interruptor', icon: '🔛', w: 180, h: 80,
+      name: 'Interruptor', icon: '🔛', w: 220, h: 120,
       props: { variable: 'led', send: true, labelOn: 'Encendido', labelOff: 'Apagado', color: '#22c55e' },
       schema: [
         { key: 'variable', label: 'Nombre de la variable', type: 'text' },
@@ -284,7 +285,7 @@
       }
     },
     alertas: {
-      name: 'Lista de alertas', icon: '🚨', w: 320, h: 200,
+      name: 'Lista de alertas', icon: '🚨', w: 300, h: 300,
       props: { max: 8, showTime: true },
       schema: [{ key: 'max', label: 'Cantidad a mostrar', type: 'number', min: 1, max: 60 }, { key: 'showTime', label: 'Mostrar hora', type: 'checkbox' }],
       render(body) { body.innerHTML = '<div class="alert-list"></div><button class="mini clear-alerts">Limpiar</button>'; body.querySelector('.clear-alerts').addEventListener('click', () => Alerts.clear()); },
@@ -295,7 +296,7 @@
       }
     },
     imagen: {
-      name: 'Imagen', icon: '🖼️', w: 200, h: 160,
+      name: 'Imagen', icon: '🖼️', w: 220, h: 220,
       props: { src: '', fit: 'contain', opacity: 1, showTitle: false, transparent: true },
       schema: [
         { key: 'src', label: 'Imagen (URL o archivo)', type: 'image' },
@@ -306,7 +307,7 @@
       update(body, w) { const img = body.querySelector('img'), p = w.props, src = w.state.src || p.src; if (img.getAttribute('src') !== (src || '')) img.src = src || ''; img.style.objectFit = p.fit; img.style.opacity = p.opacity; img.hidden = !src; body.querySelector('.img-empty').hidden = !!src; }
     },
     camara: {
-      name: 'Cámara + Teachable Machine', icon: '📷', w: 320, h: 300,
+      name: 'Cámara (IA)', icon: '📷', w: 320, h: 320,
       props: { modelUrl: '', mirror: true, showPreds: true, interval: 300 },
       schema: [
         { key: 'modelUrl', label: 'URL del modelo de Teachable Machine', type: 'text', help: 'Ej: https://teachablemachine.withgoogle.com/models/xxxxx/  (Exportar → Subir modelo → copiar enlace). Vacío = solo cámara.' },
@@ -328,7 +329,7 @@
       }
     },
     consola: {
-      name: 'Consola serial', icon: '🖥️', w: 340, h: 220,
+      name: 'Consola serial', icon: '🖥️', w: 300, h: 300,
       props: { max: 40, showSend: true },
       schema: [{ key: 'max', label: 'Líneas a mostrar', type: 'number', min: 5, max: 500 }, { key: 'showSend', label: 'Mostrar caja para enviar', type: 'checkbox' }],
       render(body, w) {
@@ -345,7 +346,7 @@
       destroy(w) { (w.state.unsub || []).forEach(f => f()); }
     },
     tabla: {
-      name: 'Tabla de variables', icon: '📋', w: 240, h: 200,
+      name: 'Tabla de variables', icon: '📋', w: 220, h: 220,
       props: { filter: '' },
       schema: [{ key: 'filter', label: 'Mostrar solo (nombres separados por coma, vacío = todas)', type: 'text' }],
       render(body) { body.innerHTML = '<table class="vars-table"><tbody></tbody></table>'; },
@@ -363,7 +364,7 @@
     viewport: null, canvas: null, propsPanel: null,
     width: 1280, height: 720,
     background: { color: '#eef2f7', image: '', fit: 'cover' },
-    widgets: [], editMode: true, selected: null, scale: 1, grid: 10, _dirty: true, _zTop: 10,
+    widgets: [], editMode: true, selected: null, scale: 1, grid: 20, _dirty: true, _zTop: 10,
 
     init(viewportEl, propsEl) {
       this.viewport = viewportEl; this.propsPanel = propsEl;
@@ -508,7 +509,7 @@
     update(w) {
       const T = Types[w.type]; if (!w.el) return;
       const body = w.el.querySelector('.w-body');
-      const r = { w: w.w, h: w.h - (w.props.showTitle ? 28 : 0), rule: null };
+      const r = { w: w.w - 24, h: w.h - 24 - (w.props.showTitle ? 22 : 0), rule: null };
       if (w.props.rules && w.props.rules.length && (w.type !== 'luz' || w.props.mode !== 'bloques')) {
         const src = w.props.source;
         if (src && Vars.has(src)) {
@@ -534,13 +535,15 @@
       if (!w) { panel.innerHTML = '<div class="props-empty"><p>Seleccioná un widget del panel para editar sus propiedades.</p><p class="muted">Tip: arrastrá para mover, usá la esquina para cambiar el tamaño, doble clic para abrir propiedades.</p></div>'; return; }
       const T = Types[w.type];
       const fields = [{ key: '__title', label: 'Título (nombre que usan los bloques)', type: 'text' }, ...T.schema, ...COMMON_TAIL.filter(f => !T.schema.some(s => s.key === f.key))];
-      panel.innerHTML = `<div class="props-head"><span>${T.icon} ${Util.esc(T.name)}</span><button class="mini" data-close>✕</button></div><div class="props-form"></div>
+      panel.innerHTML = `<div class="props-head"><span>${T.icon} ${Util.esc(T.name)}</span><button class="mini" data-close>✕</button></div>
+        <div class="seg" data-style><button data-v="0" class="${w.props.transparent ? '' : 'on'}">Con fondo</button><button data-v="1" class="${w.props.transparent ? 'on' : ''}">Sin fondo</button></div><div class="props-form"></div>
         <div class="props-geom"><label>X <input type="number" data-g="x"></label><label>Y <input type="number" data-g="y"></label><label>Ancho <input type="number" data-g="w"></label><label>Alto <input type="number" data-g="h"></label></div>
         <div class="props-actions"><button class="mini" data-dup>⧉ Duplicar</button><button class="mini danger" data-del>✕ Eliminar</button></div>`;
       const form = panel.querySelector('.props-form');
       fields.forEach(f => form.appendChild(this._field(w, f)));
       panel.querySelectorAll('[data-g]').forEach(inp => { inp.value = w[inp.dataset.g]; inp.addEventListener('change', () => { w[inp.dataset.g] = Math.max(0, +inp.value || 0); this.place(w); this.changed(); }); });
       panel.querySelector('[data-close]').addEventListener('click', () => this.select(null));
+      panel.querySelectorAll('[data-style] button').forEach(b => b.addEventListener('click', () => { w.props.transparent = b.dataset.v === '1'; panel.querySelectorAll('[data-style] button').forEach(x => x.classList.toggle('on', x === b)); this.place(w); this.changed(); }));
       panel.querySelector('[data-dup]').addEventListener('click', () => this.duplicate(w.id));
       panel.querySelector('[data-del]').addEventListener('click', () => this.remove(w.id));
     },

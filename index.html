@@ -14,57 +14,58 @@
   <header id="topbar">
     <div class="brand">🧩 <span>micro:bit <b>Panel Lab</b></span></div>
     <input id="project-name" title="Nombre del proyecto" value="Mi panel micro:bit">
-    <div class="tb-group">
-      <button id="btn-connect" class="btn" data-connect>🔌 Conectar micro:bit</button><span class="dot" data-status-dot title="Estado de la conexión"></span>
-      <button class="btn" data-sim title="Genera datos de prueba sin micro:bit">🎲 Simulador</button>
-      <button id="btn-data" class="btn" title="Formato de datos, columnas CSV, simulador">⚙️ Datos</button>
-    </div>
-    <div class="tb-group">
+    <div class="tb-group center">
+      <button id="btn-connect" class="btn primary" data-connect><span class="dot" data-status-dot></span> Conectar micro:bit</button>
       <button class="btn run" data-run>▶ Ejecutar</button>
     </div>
     <div class="tb-group right">
-      <div class="menu"><button id="btn-project" class="btn">💾 Proyecto ▾</button>
+      <div class="menu"><button id="btn-project" class="btn ghost">Proyecto ▾</button>
         <div class="menu-list">
-          <button id="m-new">🆕 Nuevo proyecto</button>
-          <button id="m-download">⬇️ Descargar archivo (.json)</button>
-          <button id="m-upload">📂 Abrir archivo…</button>
-          <button id="m-share">🔗 Copiar enlace con el proyecto</button>
-          <button id="m-clear-vars">🧹 Borrar datos recibidos</button>
+          <button id="m-new">Nuevo proyecto</button>
+          <button id="m-download">Descargar archivo (.json)</button>
+          <button id="m-upload">Abrir archivo…</button>
+          <button id="m-share">Copiar enlace con el proyecto</button>
           <div class="menu-title">Ejemplos</div>
           <div id="examples-menu"></div>
         </div>
       </div>
-      <button id="btn-microbit-code" class="btn">🧠 Código micro:bit</button>
-      <button id="btn-embed" class="btn">🔗 Embeber</button>
-      <button id="btn-panel-mode" class="btn" title="Ver solo el panel">🖥️ Modo panel</button>
-      <button class="btn" data-fullscreen title="Pantalla completa">⛶</button>
-      <button id="btn-guide" class="btn accent">❓ Guía</button>
+      <div class="menu"><button id="btn-tools" class="btn ghost">Herramientas ▾</button>
+        <div class="menu-list">
+          <button id="btn-microbit-code">Código para el micro:bit</button>
+          <button id="btn-data">Datos serial y simulador</button>
+          <button data-sim>Simulador de datos <small>Genera valores de prueba sin micro:bit</small></button>
+          <button id="btn-embed">Embeber en otra página</button>
+          <button id="m-clear-vars">Borrar datos recibidos</button>
+        </div>
+      </div>
+      <button id="btn-panel-mode" class="btn ghost" title="Ver solo el panel">Ver panel</button>
+      <button class="btn ghost" data-fullscreen title="Pantalla completa">⛶</button>
+      <button id="btn-guide" class="btn accent">Guía</button>
     </div>
   </header>
 
-  <nav id="mobile-tabs"><button data-tab="blocks">🧩 Bloques</button><button data-tab="panel" class="active">📊 Panel</button></nav>
+  <nav id="mobile-tabs"><button data-tab="blocks">Bloques</button><button data-tab="panel" class="active">Panel</button></nav>
 
   <main id="main">
     <section id="blocks-pane">
-      <div class="pane-head"><span>🧩 Bloques — programá la lógica</span><span class="muted">Empezá con un evento amarillo</span></div>
+      <div class="pane-head"><span>Bloques</span><span class="muted">Empezá con un evento amarillo</span></div>
       <div id="blockly"></div>
     </section>
     <div id="splitter" title="Arrastrá para cambiar el tamaño"></div>
     <section id="dash-pane">
       <div class="pane-head" id="dash-toolbar">
-        <div class="menu"><button id="add-btn" class="btn primary">➕ Agregar</button><div class="menu-list" id="add-menu"></div></div>
-        <button id="btn-bg" class="btn">🖼️ Fondo</button>
-        <button id="btn-size" class="btn" hidden>📐 Tamaño</button>
-        <label class="chk"><input type="checkbox" id="chk-edit" checked> Editar panel</label>
-        <button id="btn-props" class="btn">⚙ Propiedades</button>
+        <span>Panel</span>
+        <div class="menu"><button id="add-btn" class="btn primary">+ Agregar</button><div class="menu-list add-grid" id="add-menu"></div></div>
+        <button id="btn-bg" class="btn ghost">Fondo</button>
+        <button id="btn-props" class="btn ghost">Propiedades</button>
+        <button id="btn-lock" class="btn ghost" title="Bloquear el panel para usarlo sin mover nada">🔓 Edición</button>
       </div>
       <div id="dash-viewport" class="edit"><div class="dash-canvas"></div></div>
       <div id="panel-bar">
-        <button class="btn" data-connect>🔌 Conectar micro:bit</button><span class="dot" data-status-dot></span>
-        <button class="btn" data-sim>🎲 Simulador</button>
+        <button class="btn" data-connect><span class="dot" data-status-dot></span> Conectar micro:bit</button>
         <button class="btn run" data-run>▶ Ejecutar</button>
-        <button class="btn" data-fullscreen>⛶ Pantalla completa</button>
-        <button class="btn exit" data-exit-panel>✏️ Editar</button>
+        <button class="btn" data-fullscreen>⛶</button>
+        <button class="btn exit" data-exit-panel>Editar</button>
       </div>
     </section>
     <aside id="props" class="drawer"></aside>
@@ -72,10 +73,11 @@
   </main>
 
   <footer id="statusbar">
-    <span>Última línea: <code id="st-line">—</code> <small id="st-src"></small></span>
+    <span>Serial: <code id="st-line">esperando datos…</code> <small id="st-src"></small></span>
     <span id="st-vars">0 variables</span>
+    <span id="st-sim" class="pill" hidden>Simulador activo</span>
     <span id="st-warn" class="warn"></span>
-    <span class="right muted">Chrome/Edge + micro:bit por USB · <a href="https://github.com/martinferreiraHCA/microbitpage" target="_blank" rel="noopener">Código fuente</a></span>
+    <span class="right muted"><a href="https://github.com/martinferreiraHCA/microbitpage" target="_blank" rel="noopener">Código fuente</a></span>
   </footer>
 
   <div id="toasts"></div>

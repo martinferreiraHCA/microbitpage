@@ -48,16 +48,16 @@
     /* ---------- menús ---------- */
     buildAddMenu() {
       const m = $('#add-menu'); m.innerHTML = '';
-      for (const t in WidgetTypes) { const b = document.createElement('button'); b.innerHTML = `${WidgetTypes[t].icon} ${Util.esc(WidgetTypes[t].name)}`; b.onclick = () => { Dashboard.add(t); this.openProps(); }; m.appendChild(b); }
+      for (const t in WidgetTypes) { const b = document.createElement('button'); b.innerHTML = `<i>${WidgetTypes[t].icon}</i><span>${Util.esc(WidgetTypes[t].name)}</span>`; b.onclick = () => { Dashboard.add(t); this.openProps(); }; m.appendChild(b); }
     },
     buildExamplesMenu() {
       const m = $('#examples-menu'); m.innerHTML = '';
-      Examples.forEach((ex, i) => { const b = document.createElement('button'); b.innerHTML = `${Util.esc(ex.name)}<small>${Util.esc(ex.desc)}</small>`; b.onclick = () => this.loadExample(i); m.appendChild(b); });
+      Examples.forEach((ex, i) => { const b = document.createElement('button'); b.innerHTML = `${Util.esc(ex.name)}`; b.onclick = () => this.loadExample(i); m.appendChild(b); });
     },
     loadExample(i) {
       const ex = Examples[i]; if (!ex) return;
       if (Project.dirty && !confirm('Se reemplazará el proyecto actual (ya está autoguardado en el navegador). ¿Continuar?')) return;
-      Vars.clear(); Alerts.clear(); Project.load(JSON.parse(JSON.stringify(ex.project))); Util.toast('Ejemplo cargado: ' + ex.name, 'ok');
+      Vars.clear(); Alerts.clear(); Project.load(JSON.parse(JSON.stringify(ex.project)));
     },
 
     /* ---------- barra superior ---------- */
@@ -71,10 +71,9 @@
       $('#btn-panel-mode').onclick = () => this.setMode('panel');
       $('#btn-guide').onclick = () => Guide.toggle();
       $('#btn-props').onclick = () => this.openProps(true);
-      $('#chk-edit').onchange = ev => Dashboard.setEditMode(ev.target.checked);
+      $('#btn-lock').onclick = () => Dashboard.setEditMode(!Dashboard.editMode);
       $('#btn-bg').onclick = () => this.openBackground();
-      $('#btn-size').onclick = () => this.openSize();
-      $('#btn-data').onclick = () => this.openData();
+            $('#btn-data').onclick = () => this.openData();
       $('#btn-microbit-code').onclick = () => this.openMicrobitCode();
       $('#btn-embed').onclick = () => this.openEmbed();
       $('#m-new').onclick = () => { if (confirm('¿Crear un proyecto nuevo? El actual queda autoguardado hasta que lo reemplaces.')) { Project.reset(); $('#project-name').value = Project.name; } };
@@ -98,13 +97,13 @@
 
     bindStatus() {
       const dot = document.querySelectorAll('[data-status-dot]');
-      Bus.on('serial:status', on => { dot.forEach(d => d.classList.toggle('on', on)); document.querySelectorAll('[data-connect]').forEach(b => b.innerHTML = on ? '🔌 Desconectar' : '🔌 Conectar micro:bit'); });
-      Bus.on('sim:status', on => document.querySelectorAll('[data-sim]').forEach(b => b.classList.toggle('active', on)));
+      Bus.on('serial:status', on => { dot.forEach(d => d.classList.toggle('on', on)); document.querySelectorAll('[data-connect]').forEach(b => { b.classList.toggle('connected', on); b.lastChild.textContent = on ? ' micro:bit conectado' : ' Conectar micro:bit'; }); });
+      Bus.on('sim:status', on => { document.querySelectorAll('[data-sim]').forEach(b => b.classList.toggle('active', on)); $('#st-sim').hidden = !on; });
       Bus.on('runtime:status', on => document.querySelectorAll('[data-run]').forEach(b => { b.classList.toggle('running', on); b.innerHTML = on ? '■ Detener' : '▶ Ejecutar'; }));
       Bus.on('serial:line', (line, src) => { $('#st-line').textContent = line; $('#st-src').textContent = src === 'sim' ? 'simulador' : src === 'host' ? 'página host' : 'micro:bit'; });
-      Bus.on('dash:editmode', on => { $('#chk-edit').checked = on; });
+      Bus.on('dash:editmode', on => { $('#btn-lock').textContent = on ? '🔓 Edición' : '🔒 Bloqueado'; $('#btn-lock').classList.toggle('active', !on); });
       Bus.on('dash:select', w => { if (w) this.openProps(); });
-      if (!Serial.supported) $('#st-warn').textContent = 'Web Serial no disponible: usá Chrome/Edge en computadora, o el Simulador / datos desde página host.';
+      if (!Serial.supported) $('#st-warn').textContent = 'Este navegador no tiene Web Serial: usá Chrome o Edge en computadora.';
       setInterval(() => { $('#st-vars').textContent = Vars.names().length + ' variables'; }, 1000);
     },
 

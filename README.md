@@ -22,7 +22,7 @@ micro:bit ──USB/serial──▶  Panel Lab  ──▶  panel de monitoreo (m
 | **Cámara + IA** | Widget de cámara con modelo de imágenes de [Teachable Machine](https://teachablemachine.withgoogle.com). Variables `camara_clase`, `camara_confianza`, `camara_<clase>` y evento *cuando la cámara detecta…*. |
 | **Proyectos** | Autoguardado en el navegador, **descarga/carga de archivo `.json`** con panel + bloques + fondo + configuración, enlace compartible con el proyecto comprimido, 4 ejemplos incluidos. |
 | **Modo panel** | Solo la interfaz, pantalla completa, parámetros de URL para kiosco y **embebido por `<iframe>`** con API `postMessage` (para ml-microbit, MakeCode u otra página con conexión propia). |
-| **Guía** | Tutorial paso a paso integrado (❓ Guía) y generador de código para el micro:bit (MakeCode JavaScript y MicroPython). |
+| **Guía** | Tutorial paso a paso integrado (botón Guía) y generador de código para el micro:bit (MakeCode JavaScript y MicroPython). |
 
 ## Publicar en GitHub Pages
 
@@ -35,7 +35,7 @@ No hay build: es HTML/CSS/JS puro. Blockly está incluido en `vendor/` para func
 
 ## Programar el micro:bit
 
-El micro:bit debe enviar líneas `nombre:valor` por serial (115200 baudios). En MakeCode, el bloque **serial escribir valor** ya lo hace. Usá **🧠 Código micro:bit** en la app para generar el programa con los sensores que quieras, por ejemplo:
+El micro:bit debe enviar líneas `nombre:valor` por serial (115200 baudios). En MakeCode, el bloque **serial escribir valor** ya lo hace. Usá **Herramientas → Código para el micro:bit** en la app para generar el programa con los sensores que quieras, por ejemplo:
 
 ```js
 serial.setBaudRate(BaudRate.BaudRate115200)
