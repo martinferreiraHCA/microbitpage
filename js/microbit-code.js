@@ -27,6 +27,28 @@
     rows: [{ name: 'temp', sensor: 'temperatura' }, { name: 'luz', sensor: 'luz' }],
     interval: 500, receive: true, mlEvent: false,
 
+    /** Bloque que reenvía por serial las clases recibidas de ML - micro:bit (Bluetooth). */
+    ML_FORWARD: [
+      '// ML - micro:bit: cada predicción que llega por Bluetooth se reenvía por el cable USB',
+      '// como "clase:NOMBRE,certeza:NN" para que el panel la reciba.',
+      '// Requiere la extensión iaMachine (https://github.com/snan-microbit/pxt-tm-microbit-link-v2),',
+      '// que el editor integrado en ML - micro:bit ya trae cargada.',
+      'iaMachine.alDetectarCualquierClase(0, function () {',
+      '    serial.writeLine("clase:" + iaMachine.claseDetectada() + ",certeza:" + iaMachine.certezaDetectada())',
+      '})',
+      'iaMachine.alConectar(function () {',
+      '    basic.showIcon(IconNames.Yes)',
+      '    serial.writeLine("ml:conectado")',
+      '})',
+      'iaMachine.alDesconectar(function () {',
+      '    basic.showIcon(IconNames.No)',
+      '    serial.writeLine("ml:desconectado")',
+      '})',
+    ],
+    mlBridgeCode() {
+      return ['// Puente ML - micro:bit → panel (generado por micro:bit Panel Lab)', 'serial.setBaudRate(BaudRate.BaudRate115200)', ''].concat(this.ML_FORWARD).join('\n');
+    },
+
     makecode() {
       const L = [];
       L.push('// Programa generado por micro:bit Panel Lab', '// Envía los sensores por serial en formato nombre:valor', 'serial.setBaudRate(BaudRate.BaudRate115200)', '');
@@ -41,9 +63,7 @@
           '        basic.showString(linea)',
           '    }', '})', '');
       }
-      if (this.mlEvent) {
-        L.push('// Con ml-microbit (CreateAI): dentro de cada evento de la extensión ML', '// agregá un bloque "serial write line" con el nombre de la clase:', '// ml.onStart(ml.event.Saltando, function () { serial.writeLine("clase:saltando") })', '');
-      }
+      if (this.mlEvent) { L.push(...this.ML_FORWARD, ''); }
       L.push('basic.forever(function () {');
       this.rows.forEach(r => { const s = SENSORS[r.sensor]; if (s && r.name) L.push(`    serial.writeValue("${r.name}", ${s.js})`); });
       L.push(`    basic.pause(${Math.max(50, +this.interval || 500)})`, '})');
@@ -52,6 +72,7 @@
 
     python() {
       const L = ['# Programa generado por micro:bit Panel Lab', '# Envía los sensores por serial en formato nombre:valor', 'from microbit import *', 'import music', '', 'uart.init(baudrate=115200)', ''];
+      if (this.mlEvent) L.push('# Nota: el puente con ML - micro:bit (Bluetooth) solo está disponible en MakeCode,', '# porque MicroPython no incluye el servicio UART Bluetooth. Usá la pestaña MakeCode.', '');
       L.push('while True:');
       const parts = this.rows.filter(r => SENSORS[r.sensor] && r.name).map(r => `"${r.name}:" + str(${SENSORS[r.sensor].py})`);
       L.push('    linea = ' + (parts.length ? parts.join(' + "," + ') : '""'));
@@ -74,7 +95,7 @@
           <div class="row"><button class="mini" data-add>+ Agregar sensor</button>
             <label>Cada <input type="number" data-interval value="${this.interval}" min="50" step="50" style="width:70px"> ms</label>
             <label><input type="checkbox" data-receive ${this.receive ? 'checked' : ''}> recibir órdenes del panel</label>
-            <label><input type="checkbox" data-ml ${this.mlEvent ? 'checked' : ''}> nota para ml-microbit (CreateAI)</label></div>
+            <label><input type="checkbox" data-ml ${this.mlEvent ? 'checked' : ''}> reenviar clases de ML - micro:bit (Bluetooth → serial)</label></div>
           <div class="mc-tabs"><button class="mini active" data-tab="js">MakeCode (JavaScript)</button><button class="mini" data-tab="py">MicroPython</button><button class="mini" data-copy>📋 Copiar</button></div>
           <pre class="code" data-code></pre>`;
         const pre = el.querySelector('[data-code]'); let tab = 'js';

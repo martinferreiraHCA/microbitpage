@@ -34,10 +34,12 @@
           <button id="btn-microbit-code">Código para el micro:bit</button>
           <button id="btn-data">Datos serial y simulador</button>
           <button data-sim>Simulador de datos <small>Genera valores de prueba sin micro:bit</small></button>
+          <button id="btn-ml-help">Cómo conectar ML - micro:bit <small>IA → Bluetooth → micro:bit → serial → panel</small></button>
           <button id="btn-embed">Embeber en otra página</button>
           <button id="m-clear-vars">Borrar datos recibidos</button>
         </div>
       </div>
+      <button id="btn-ml" class="btn ghost" title="Entrenar un modelo de IA con ML - micro:bit">IA · ML micro:bit</button>
       <button id="btn-panel-mode" class="btn ghost" title="Ver solo el panel">Ver panel</button>
       <button class="btn ghost" data-fullscreen title="Pantalla completa">⛶</button>
       <button id="btn-guide" class="btn accent">Guía</button>
@@ -72,6 +74,17 @@
     <aside id="props" class="drawer"></aside>
     <aside id="guide" class="drawer"></aside>
   </main>
+
+  <section id="ml-pane" hidden>
+    <div class="pane-head">
+      <span>ML - micro:bit</span><span class="muted-inline">entrená un modelo de imagen, audio o pose y conectalo al micro:bit por Bluetooth</span>
+      <div class="spacer"></div>
+      <button class="btn ghost" id="btn-ml-help2">¿Cómo llega al panel?</button>
+      <a class="btn ghost" href="ml/index.html" target="_blank" rel="noopener">Abrir en pestaña nueva ↗</a>
+      <button class="btn primary" id="btn-ml-back">← Volver al panel</button>
+    </div>
+    <iframe id="ml-frame" title="ML - micro:bit" allow="camera; microphone; bluetooth; serial; fullscreen"></iframe>
+  </section>
 
   <footer id="statusbar">
     <span>Serial: <code id="st-line">esperando datos…</code> <small id="st-src"></small></span>

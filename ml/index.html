@@ -1,0 +1,331 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+    <meta charset="UTF-8">
+    <meta http-equiv="Content-Security-Policy" content="
+        default-src 'self';
+        script-src 'self' 'wasm-unsafe-eval';
+        style-src 'self' 'unsafe-inline';
+        img-src 'self' data: blob:;
+        font-src 'self';
+        media-src 'self' blob:;
+        connect-src 'self' blob:;
+        worker-src 'self' blob:;
+        frame-src https://makecode.microbit.org;
+        manifest-src 'self';
+        object-src 'none';
+        base-uri 'self';
+        form-action 'none'
+    ">
+    <meta name="viewport" content="width=device-width, initial-scale=1">
+    <meta name="description" content="Conecta modelos de Machine Learning a tu placa micro:bit">
+    <meta name="theme-color" content="#009f95">
+    <meta name="apple-mobile-web-app-capable" content="yes">
+    <meta name="mobile-web-app-capable" content="yes">
+    <meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+    <title>ML - micro:bit</title>
+
+    <link rel="preload" as="image" href="assets/icon-192.png">
+    <link rel="icon" type="image/png" sizes="192x192" href="assets/icon-192.png">
+    <link rel="icon" type="image/png" sizes="512x512" href="assets/icon-512.png">
+    <link rel="apple-touch-icon" href="assets/icon-192.png">
+    <link rel="manifest" href="manifest.json">
+
+    <link rel="stylesheet" href="css/styles.css">
+
+<!-- Debe cargar antes de TF.js. Ver comentario en el archivo. -->
+<script src="js/regenerator-guard.js"></script>
+
+<!-- TF.js 4.22.0 (self-hosted) -->
+<script src="vendor/tfjs/tfjs-4.22.0.min.js"></script>
+<!-- Speech Commands 0.5.4 (self-hosted) -->
+<script src="vendor/speech-commands/speech-commands-0.5.4.min.js"></script>
+<!-- MediaPipe Tasks Vision 0.10.14 (self-hosted) -->
+<script type="module" src="js/mediapipe-loader.js"></script>
+</head>
+<body>
+    <!-- HOME SCREEN -->
+    <div class="screen" id="homeScreen">
+        <div class="container">
+            <header class="header">
+                <h1>
+                    <img src="assets/icon-192.png" alt="ML - micro:bit" width="48" height="48" fetchpriority="high" style="vertical-align: middle; margin-right: 12px; border-radius: 10px;">
+                    ML - micro:bit
+                </h1>
+                <p class="subtitle">Entrená modelos de Machine Learning y conectalos con tu micro:bit</p>
+            </header>
+
+            <button class="btn-primary btn-large" id="newModelBtn" style="display:none">
+                + Nuevo Proyecto
+            </button>
+
+            <section class="models-library">
+                <h2>Mis Proyectos</h2>
+                <div id="quarantineNotice" class="quarantine-notice hidden" role="status">
+                    <span id="quarantineNoticeText"></span>
+                    <button type="button" id="quarantineNoticeDismiss" class="quarantine-notice-dismiss">Entendido</button>
+                </div>
+                <div id="modelsList" class="models-grid"></div>
+                <div id="emptyState" class="empty-state">
+                    <p>No hay proyectos guardados</p>
+                    <p class="empty-hint">Hacé clic en "Nuevo Proyecto" para empezar</p>
+                </div>
+            </section>
+        </div>
+    </div>
+
+    <!-- TRAINING SCREEN -->
+    <div class="screen hidden" id="trainingScreen">
+        <div class="training-layout">
+
+            <header class="training-header">
+                <button class="btn-back" id="trainingBackBtn">
+                    <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                        <path d="M3 12L5 10M5 10L12 3L19 10M5 10V20C5 20.5523 5.44772 21 6 21H9M19 10L21 12M19 10V20C19 20.5523 18.5523 21 18 21H15M9 21C9.55228 21 10 20.5523 10 20V16C10 15.4477 10.4477 15 11 15H13C13.5523 15 14 15.4477 14 16V20C14 20.5523 14.4477 21 15 21M9 21H15" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                    </svg>
+                </button>
+                <h2 id="trainingModelName">Proyecto</h2>
+                <span class="project-type-badge" id="projectTypeBadge"></span>
+            </header>
+
+            <div class="training-capture-section" id="trainingCaptureSection">
+                <div class="capture-webcam-column">
+                    <div class="capture-visor-wrap">
+                        <div class="capture-webcam-container" id="captureWebcamContainer"></div>
+                        <button class="btn-video-action btn-capture-flip" id="captureFlipBtn" title="Cámara trasera">
+                            <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                                <polyline points="1 4 1 10 7 10"></polyline>
+                                <polyline points="23 20 23 14 17 14"></polyline>
+                                <path d="M20.49 9A9 9 0 0 0 5.64 5.64L1 10m22 4l-4.64 4.36A9 9 0 0 1 3.51 15"></path>
+                            </svg>
+                        </button>
+                    </div>
+                </div>
+                <div class="capture-classes-column">
+                    <div class="classes-card">
+                        <div class="training-classes-header">
+                            <h3 class="training-classes-title">Clases</h3>
+                            <button class="add-class-header-btn" id="addClassBtn" title="Agregar clase">+ Nueva clase</button>
+                        </div>
+                        <div class="classes-card-body" id="trainingClassesList"></div>
+                        <div class="classes-card-footer">
+                            <button class="btn-primary" id="trainBtn" disabled>
+                                <span class="train-label">Entrenar</span>
+                                <span class="train-btn-pct" id="trainProgressText"></span>
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+        </div>
+    </div>
+
+    <!-- PREDICTION SCREEN -->
+    <div class="screen hidden" id="predictionScreen">
+        <div class="prediction-layout">
+
+            <div class="prediction-body">
+
+                <div class="prediction-main-column">
+
+                    <header class="prediction-header">
+                        <button class="btn-back" id="predictionBackBtn">
+                            <svg width="18" height="18" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
+                                <path d="M3 12L5 10M5 10L12 3L19 10M5 10V20C5 20.5523 5.44772 21 6 21H9M19 10L21 12M19 10V20C19 20.5523 18.5523 21 18 21H15M9 21C9.55228 21 10 20.5523 10 20V16C10 15.4477 10.4477 15 11 15H13C13.5523 15 14 15.4477 14 16V20C14 20.5523 14.4477 21 15 21M9 21H15" stroke="currentColor" stroke-width="2" stroke-linecap="round" stroke-linejoin="round"/>
+                            </svg>
+                        </button>
+                        <h2 id="predictionModelName">Proyecto</h2>
+                    </header>
+
+                    <div class="prediction-main-content">
+                        <div class="prediction-video-area">
+                            <div id="prediction-webcam-wrapper" class="prediction-webcam-wrapper"></div>
+                            <button class="btn-video-action btn-video-flip" id="predictionFlipBtn" title="Cámara trasera">
+                                <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                                    <polyline points="1 4 1 10 7 10"></polyline>
+                                    <polyline points="23 20 23 14 17 14"></polyline>
+                                    <path d="M20.49 9A9 9 0 0 0 5.64 5.64L1 10m22 4l-4.64 4.36A9 9 0 0 1 3.51 15"></path>
+                                </svg>
+                            </button>
+                            <button class="btn-video-action btn-video-expand" id="predictionExpandBtn" title="Expandir">
+                                <svg class="icon-expand" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                                    <polyline points="15 3 21 3 21 9"></polyline>
+                                    <polyline points="9 21 3 21 3 15"></polyline>
+                                    <line x1="21" y1="3" x2="14" y2="10"></line>
+                                    <line x1="3" y1="21" x2="10" y2="14"></line>
+                                </svg>
+                                <svg class="icon-minimize" xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                                    <polyline points="4 14 10 14 10 20"></polyline>
+                                    <polyline points="20 10 14 10 14 4"></polyline>
+                                    <line x1="10" y1="14" x2="3" y2="21"></line>
+                                    <line x1="21" y1="3" x2="14" y2="10"></line>
+                                </svg>
+                            </button>
+                        </div>
+                        <div class="predictions-card">
+                            <div class="predictions-card-header">Predicciones</div>
+                            <div class="predictions-card-body" id="prediction-predictions"></div>
+                            <div class="predictions-card-footer">
+                                <button class="btn-pred-connect" id="predictionConnectBtn">🔗 Conectar</button>
+                                <button class="btn-pred-retrain" id="predictionRetrainBtn">↺ Reentrenar</button>
+                            </div>
+                        </div>
+                    </div>
+
+                </div>
+
+                <div class="makecode-inline-panel" id="makecodeInlinePanel">
+                    <iframe id="makecodeInlineFrame" allow="usb; autoplay; camera; microphone;" src="about:blank"></iframe>
+                </div>
+
+            </div>
+
+        </div>
+    </div>
+
+    <!-- PROJECT TYPE MODAL -->
+    <div class="modal hidden" id="projectTypeModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Nuevo Proyecto</h3>
+                <button class="modal-close" id="closeTypeModalBtn">×</button>
+            </div>
+            <div class="modal-body">
+                <div class="project-type-options">
+                    <button class="btn-project-type" id="typeUrlBtn" style="display:none">
+                        <span class="type-icon">🔗</span>
+                        <span class="type-label">URL de Teachable Machine</span>
+                        <span class="type-desc">Usa un modelo ya entrenado en Teachable Machine</span>
+                    </button>
+                    <button class="btn-project-type" id="typeTrainBtn">
+                        <span class="type-icon">📷</span>
+                        <span class="type-label">Entrenar modelo de imagen</span>
+                        <span class="type-desc">Entrena tu propio modelo con la cámara</span>
+                    </button>
+                    <button class="btn-project-type" id="typeAudioTrainBtn">
+                        <span class="type-icon">🎤</span>
+                        <span class="type-label">Entrenar modelo de audio</span>
+                        <span class="type-desc">Entrena tu propio modelo de reconocimiento de sonidos</span>
+                    </button>
+                    <button class="btn-project-type" id="typePoseTrainBtn">
+                        <span class="type-icon">🤸</span>
+                        <span class="type-label">Entrenar modelo de pose</span>
+                        <span class="type-desc">Entrena tu propio modelo de reconocimiento de posturas corporales</span>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- TRAIN PROJECT NAME MODAL -->
+    <div class="modal hidden" id="trainNameModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Nombre del Proyecto</h3>
+                <button class="modal-close" id="closeTrainNameBtn">×</button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label for="trainProjectName">Nombre</label>
+                    <input type="text" id="trainProjectName" placeholder="Ej: Detector de gestos" class="input-text">
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn-secondary" id="cancelTrainNameBtn">Cancelar</button>
+                <button class="btn-primary" id="startTrainingBtn">Comenzar</button>
+            </div>
+        </div>
+    </div>
+
+    <!-- NEW PROJECT MODAL -->
+    <div class="modal hidden" id="newModelModal">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h3>Nuevo Proyecto</h3>
+                <button class="modal-close" id="closeModalBtn">×</button>
+            </div>
+            <div class="modal-body">
+                <div class="form-group">
+                    <label for="modelNameInput">Nombre del proyecto</label>
+                    <input type="text" id="modelNameInput" placeholder="Ej: Detector de gestos" class="input-text">
+                </div>
+                <div class="form-group">
+                    <label for="modelUrlInput">URL del modelo de Teachable Machine</label>
+                    <input type="url" id="modelUrlInput" placeholder="https://teachablemachine.withgoogle.com/models/..." class="input-text">
+                    <small class="input-hint">Pega la URL completa de tu modelo exportado</small>
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button class="btn-secondary" id="cancelModalBtn">Cancelar</button>
+                <button class="btn-primary" id="saveModelBtn">Crear proyecto</button>
+            </div>
+        </div>
+    </div>
+
+<div id="statusToast" class="toast"></div>
+
+    <!-- TRAINING OVERLAY -->
+    <div class="training-overlay hidden" id="trainingOverlay">
+        <div class="training-overlay-content">
+            <div class="training-overlay-pct" id="trainingOverlayPct">0%</div>
+            <div class="training-overlay-label">Entrenando modelo...</div>
+        </div>
+    </div>
+
+    <!-- AUDIO RECORD COUNTDOWN MODAL -->
+    <div class="audio-record-modal hidden" id="audioRecordModal">
+        <button class="audio-record-cancel-btn" id="audioRecordCancelBtn" aria-label="Cancelar">×</button>
+        <div class="audio-record-modal-content">
+            <div class="countdown-number" id="countdownNumber">3</div>
+            <div class="countdown-label" id="countdownLabel">Prepárate...</div>
+        </div>
+    </div>
+
+    <!-- Modal: Probar modelo post-entrenamiento -->
+    <div id="previewModal" class="preview-modal hidden">
+        <div class="preview-modal-content">
+            <div class="preview-modal-header">
+                <h2 class="preview-modal-title">Probar modelo</h2>
+            </div>
+            <div class="preview-modal-body">
+                <div class="preview-visor-col">
+                    <div class="preview-visor-wrapper" id="previewVisorWrapper">
+                        <!-- Webcam canvas o audio visualizer se insertan aquí dinámicamente -->
+                    </div>
+                    <button class="btn-video-action btn-preview-flip" id="previewFlipBtn" title="Cámara trasera">
+                        <svg xmlns="http://www.w3.org/2000/svg" width="20" height="20" viewBox="0 0 24 24" fill="none" stroke="currentColor" stroke-width="2.5" stroke-linecap="round" stroke-linejoin="round">
+                            <polyline points="1 4 1 10 7 10"></polyline>
+                            <polyline points="23 20 23 14 17 14"></polyline>
+                            <path d="M20.49 9A9 9 0 0 0 5.64 5.64L1 10m22 4l-4.64 4.36A9 9 0 0 1 3.51 15"></path>
+                        </svg>
+                    </button>
+                </div>
+                <div class="preview-classes-col" id="previewClassesCol">
+                    <div class="preview-classes-card">
+                        <div class="preview-classes-card-header">Clases detectadas</div>
+                        <div class="preview-classes-card-body" id="previewClassCards"></div>
+                    </div>
+                </div>
+            </div>
+            <div class="preview-modal-footer">
+                <button id="previewBackBtn" class="preview-btn preview-btn-secondary">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M12 5V1L7 6l5 5V7c3.31 0 6 2.69 6 6s-2.69 6-6 6-6-2.69-6-6H4c0 4.42 3.58 8 8 8s8-3.58 8-8-3.58-8-8-8z"/>
+                    </svg>
+                    Tomar más muestras
+                </button>
+                <button id="previewProgramBtn" class="preview-btn preview-btn-primary">
+                    <svg width="16" height="16" viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M7 5h10v2h2V3H5v4h2V5zm-2 8h2v-2H5v4h2v-2h10v2h2v-4h-2v2H7z"/>
+                    </svg>
+                    Programar micro:bit
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <script type="module" src="js/app.js"></script>
+
+</body>
+</html>

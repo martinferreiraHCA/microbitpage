@@ -133,6 +133,10 @@
       this.tick++;
       const parts = [];
       this.vars.forEach((v, i) => {
+        if (v.values && v.values.length) { // variable de texto: cambia cada tanto
+          if (this.tick % 6 === 1 || v._cur == null) v._cur = v.values[Math.floor(Math.random() * v.values.length)];
+          parts.push(v.name + ':' + v._cur); return;
+        }
         const mid = (v.min + v.max) / 2, amp = (v.max - v.min) / 2;
         const val = mid + amp * 0.8 * Math.sin(this.tick / (6 + i * 3) + i) + (Math.random() - 0.5) * amp * 0.15;
         parts.push(v.name + ':' + (Number.isInteger(v.min) && Number.isInteger(v.max) && v.max - v.min > 50 ? Math.round(val) : val.toFixed(1)));

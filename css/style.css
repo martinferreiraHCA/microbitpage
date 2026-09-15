@@ -252,6 +252,20 @@ body.locked #panel-bar .exit { display: none; }
 #dash-pane:fullscreen { background: #000; }
 #dash-pane:fullscreen #dash-toolbar { display: none; }
 
+/* ---------- vista ML - micro:bit ---------- */
+#ml-pane { flex: 1; display: flex; flex-direction: column; min-height: 0; }
+#ml-pane .pane-head .muted-inline { font-weight: 400; color: var(--muted); font-size: 12px; }
+#ml-pane .spacer { flex: 1; }
+#ml-pane a.btn { text-decoration: none; }
+#ml-frame { flex: 1; border: 0; width: 100%; background: #fff; }
+body.ml-mode #main, body.ml-mode #mobile-tabs { display: none; }
+.steps { counter-reset: s; padding-left: 0; list-style: none; }
+.steps li { position: relative; padding: 8px 0 8px 40px; border-bottom: 1px solid var(--line); }
+.steps li::before { counter-increment: s; content: counter(s); position: absolute; left: 0; top: 8px; width: 28px; height: 28px; border-radius: 50%; background: var(--primary); color: #fff; font-weight: 700; display: flex; align-items: center; justify-content: center; font-size: 13px; }
+.flow { display: flex; flex-wrap: wrap; gap: 6px; align-items: center; font-size: 13px; margin: 8px 0 12px; }
+.flow span { background: #eef1f6; padding: 6px 10px; border-radius: 8px; font-weight: 600; }
+.flow i { color: var(--muted); font-style: normal; }
+
 /* ---------- responsive ---------- */
 @media (max-width: 900px) {
   #mobile-tabs { display: flex; background: #fff; border-bottom: 1px solid var(--line); padding: 6px; gap: 4px; }

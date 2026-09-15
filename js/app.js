@@ -37,7 +37,7 @@
 
       // Modo
       const mode = params.get('mode');
-      this.setMode(mode === 'panel' ? 'panel' : 'editor');
+      this.setMode(mode === 'panel' ? 'panel' : mode === 'ml' ? 'ml' : 'editor');
       if (params.get('sim') === '1') Simulator.start();
       if (params.get('edit') === '0') Dashboard.setEditMode(false);
       window.addEventListener('hashchange', () => { if (location.hash.includes('p=')) Project.loadFromHash(); });
@@ -69,6 +69,10 @@
       document.querySelectorAll('[data-fullscreen]').forEach(b => b.onclick = () => this.fullscreen());
       document.querySelectorAll('[data-exit-panel]').forEach(b => b.onclick = () => this.setMode('editor'));
       $('#btn-panel-mode').onclick = () => this.setMode('panel');
+      $('#btn-ml').onclick = () => this.setMode(this.mode === 'ml' ? 'editor' : 'ml');
+      $('#btn-ml-back').onclick = () => this.setMode('editor');
+      $('#btn-ml-help').onclick = () => this.openMlHelp();
+      $('#btn-ml-help2').onclick = () => this.openMlHelp();
       $('#btn-guide').onclick = () => Guide.toggle();
       $('#btn-props').onclick = () => this.openProps(true);
       $('#btn-lock').onclick = () => Dashboard.setEditMode(!Dashboard.editMode);
@@ -117,11 +121,14 @@
     /* ---------- modos ---------- */
     setMode(mode) {
       this.mode = mode; document.body.classList.toggle('panel-mode', mode === 'panel');
+      document.body.classList.toggle('ml-mode', mode === 'ml');
+      $('#ml-pane').hidden = mode !== 'ml'; $('#btn-ml').classList.toggle('active', mode === 'ml');
+      if (mode === 'ml') { const f = $('#ml-frame'); if (!f.getAttribute('src')) f.src = 'ml/index.html'; }
       document.body.classList.toggle('embedded', this.embedded); document.body.classList.toggle('locked', this.locked);
       if (mode === 'panel') { Dashboard.setEditMode(false); $('#props').classList.remove('open'); Guide.close(); if (this.autorun && !Runtime.running && !Blocks.isEmpty()) Runtime.start(); }
       else Dashboard.setEditMode(true);
       setTimeout(() => { Dashboard.layout(); Blocks.resize(); }, 30);
-      const u = new URL(location.href); if (mode === 'panel') u.searchParams.set('mode', 'panel'); else u.searchParams.delete('mode'); history.replaceState(null, '', u);
+      const u = new URL(location.href); if (mode === 'panel' || mode === 'ml') u.searchParams.set('mode', mode); else u.searchParams.delete('mode'); history.replaceState(null, '', u);
     },
     fullscreen() {
       const el = $('#dash-pane');
@@ -163,7 +170,7 @@
         <div class="field"><label>Velocidad (baudios)</label><select data-baud>${[115200, 9600, 57600, 38400, 19200].map(b => `<option ${Serial.config.baud === b ? 'selected' : ''}>${b}</option>`).join('')}</select><small class="muted">MakeCode usa 115200 por defecto.</small></div>
         <h3>Simulador</h3>
         <p class="muted">Genera valores que oscilan entre mínimo y máximo, para practicar sin micro:bit.</p>
-        <table class="mc-rows"><thead><tr><th>Variable</th><th>Mín</th><th>Máx</th><th></th></tr></thead><tbody data-sim></tbody></table>
+        <table class="mc-rows"><thead><tr><th>Variable</th><th>Mín</th><th>Máx</th><th>o valores de texto (a,b,c)</th><th></th></tr></thead><tbody data-sim></tbody></table>
         <div class="row"><button class="mini" data-add>+ Agregar</button><label>Intervalo <input type="number" data-int value="${Simulator.interval}" min="100" step="100" style="width:80px"> ms</label><label><input type="checkbox" data-sound ${Alerts.sound ? 'checked' : ''}> sonido en alertas</label><label><input type="checkbox" data-autorun ${this.autorun ? 'checked' : ''}> ejecutar bloques al abrir el proyecto</label></div>`,
         d => {
           d.querySelector('[data-cols]').onchange = ev => { Serial.config.columns = ev.target.value.split(',').map(s => s.trim()).filter(Boolean); Project.scheduleAutosave(); };
@@ -173,12 +180,28 @@
           d.querySelector('[data-autorun]').onchange = ev => { this.autorun = ev.target.checked; Project.scheduleAutosave(); };
           const tb = d.querySelector('[data-sim]');
           const draw = () => {
-            tb.innerHTML = Simulator.vars.map((v, i) => `<tr><td><input data-i="${i}" data-k="name" value="${Util.esc(v.name)}"></td><td><input type="number" data-i="${i}" data-k="min" value="${v.min}" style="width:80px"></td><td><input type="number" data-i="${i}" data-k="max" value="${v.max}" style="width:80px"></td><td><button class="mini danger" data-del="${i}">✕</button></td></tr>`).join('');
-            tb.querySelectorAll('[data-k]').forEach(inp => inp.onchange = () => { const v = Simulator.vars[+inp.dataset.i]; v[inp.dataset.k] = inp.dataset.k === 'name' ? inp.value.trim() : +inp.value; Project.scheduleAutosave(); this.updateVarList(); });
+            tb.innerHTML = Simulator.vars.map((v, i) => `<tr><td><input data-i="${i}" data-k="name" value="${Util.esc(v.name)}"></td><td><input type="number" data-i="${i}" data-k="min" value="${v.min}" style="width:70px"></td><td><input type="number" data-i="${i}" data-k="max" value="${v.max}" style="width:70px"></td><td><input data-i="${i}" data-k="values" value="${Util.esc((v.values || []).join(','))}" placeholder="Gato,Perro"></td><td><button class="mini danger" data-del="${i}">✕</button></td></tr>`).join('');
+            tb.querySelectorAll('[data-k]').forEach(inp => inp.onchange = () => { const v = Simulator.vars[+inp.dataset.i]; const k = inp.dataset.k; if (k === 'values') { v.values = inp.value.split(',').map(x => x.trim()).filter(Boolean); v._cur = null; } else v[k] = k === 'name' ? inp.value.trim() : +inp.value; Project.scheduleAutosave(); this.updateVarList(); });
             tb.querySelectorAll('[data-del]').forEach(b => b.onclick = () => { Simulator.vars.splice(+b.dataset.del, 1); draw(); Project.scheduleAutosave(); });
           };
           draw(); d.querySelector('[data-add]').onclick = () => { Simulator.vars.push({ name: 'sensor' + (Simulator.vars.length + 1), min: 0, max: 100 }); draw(); };
         });
+    },
+    openMlHelp() {
+      const code = MicrobitCode.mlBridgeCode();
+      this.dialog('Cómo conectar ML - micro:bit con el panel', `
+        <div class="flow"><span>ML - micro:bit</span><i>Bluetooth</i><span>micro:bit</span><i>cable USB (serial)</i><span>Panel Lab</span></div>
+        <p>La app <b>ML - micro:bit</b> entrena un modelo en la computadora y le manda al micro:bit, por Bluetooth, la clase detectada y su certeza (<code>Gato#87</code>). El panel <b>solo lee el cable serial</b>: por eso el micro:bit tiene que reenviar lo que recibe. Con este programa, el panel recibe las variables <code>clase</code> y <code>certeza</code> y podés usarlas en elementos, reglas de alerta y bloques.</p>
+        <ol class="steps">
+          <li><b>Entrená el modelo.</b> Abrí <b>IA · ML micro:bit</b>, creá un proyecto (imagen, audio o pose), agregá 2 o más clases, capturá muestras y presioná <b>Entrenar</b>.</li>
+          <li><b>Programá el micro:bit.</b> En la pantalla de predicción de ML - micro:bit está el editor MakeCode con la extensión <b>iaMachine</b> ya cargada. Abrí la pestaña <b>JavaScript</b>, pegá el código de abajo y descargalo al micro:bit por USB (un micro:bit V2 es lo recomendado: Bluetooth y serial a la vez).</li>
+          <li><b>Conectá por Bluetooth.</b> En ML - micro:bit presioná <b>Conectar micro:bit</b> y elegí tu placa. Cuando el modelo detecta algo, el micro:bit lo recibe.</li>
+          <li><b>Conectá el panel por USB.</b> Volvé al panel y presioná <b>Conectar micro:bit</b> (puerto serial). El Bluetooth y el cable son canales distintos, así que las dos conexiones conviven.</li>
+          <li><b>Usá los datos.</b> Agregá un <b>Texto</b> con <code>Veo: {clase} ({certeza} %)</code>, luces con la regla <i>si el valor = Gato → Peligro</i>, o bloques como <b>cuando clase cambia</b>. Mirá el ejemplo <b>Proyecto → Ejemplos → ML - micro:bit por serial</b>.</li>
+        </ol>
+        <div class="field"><label>Programa para el micro:bit (MakeCode → JavaScript). Si usás MakeCode fuera de la app, agregá la extensión desde <i>Extensiones</i> pegando <code>https://github.com/snan-microbit/pxt-tm-microbit-link-v2</code>.</label><pre class="code">${Util.esc(code)}</pre><button class="mini" data-copy>Copiar código</button></div>
+        <p class="muted">Si además el micro:bit lee sensores, sumalos en el mismo programa: <b>Herramientas → Código para el micro:bit</b> arma todo junto (marcá la opción "reenviar clases de ML - micro:bit").</p>`,
+        d => { d.querySelector('[data-copy]').onclick = () => navigator.clipboard.writeText(code).then(() => Util.toast('Código copiado', 'ok')); });
     },
     openMicrobitCode() { this.dialog('🧠 Código para el micro:bit', '<div data-mc></div>', d => MicrobitCode.render(d.querySelector('[data-mc]'))); },
     openEmbed() {

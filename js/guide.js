@@ -36,6 +36,10 @@
     { title: '8. Cámara + Teachable Machine', target: null, html: `
       <p>Entrená un modelo de imágenes en <a href="https://teachablemachine.withgoogle.com" target="_blank" rel="noopener">Teachable Machine</a> → <b>Exportar modelo</b> → <b>Subir (compartible)</b> → copiá el enlace.</p>
       <p>Agregá el elemento <b>Cámara</b>, pegá la URL en sus propiedades e iniciá la cámara. Vas a tener las variables <code>camara_clase</code> y <code>camara_confianza</code>, y el evento <b>cuando la cámara detecta…</b> en los bloques.</p>`, action: { label: 'Agregar cámara', fn: () => Dashboard.add('camara') } },
+    { title: '8b. IA con ML - micro:bit', target: '#btn-ml', html: `
+      <p>La plataforma incluye <b>ML - micro:bit</b> (botón <b>IA · ML micro:bit</b>): entrenás un modelo de imagen, audio o pose y la app le manda al micro:bit por <b>Bluetooth</b> la clase detectada.</p>
+      <p>El panel solo lee el <b>cable USB (serial)</b>, así que el micro:bit reenvía lo que recibe: en <b>Herramientas → Cómo conectar ML - micro:bit</b> está el programa listo para copiar y los pasos.</p>
+      <p>Del lado del panel vas a recibir <code>clase</code> y <code>certeza</code>: mostralas con un <b>Texto</b>, una <b>Luz</b> por clase (regla <i>= Gato</i>) o el bloque <b>cuando clase cambia</b>.</p>`, action: { label: 'Ver cómo se conecta', fn: () => App.openMlHelp() } },
     { title: '9. Guardá tu proyecto', target: '#btn-project', html: `
       <p>Todo se autoguarda en este navegador, pero para llevarlo a otra computadora usá <b>Proyecto → Descargar archivo</b>. Se genera un <code>.json</code> con el panel, los bloques, el fondo y la configuración de datos.</p>
       <p>Para retomarlo: <b>Proyecto → Abrir archivo</b>. También podés <b>copiar un enlace</b> que lleva el proyecto adentro.</p>`, action: { label: 'Descargar archivo', fn: () => Project.download() } },

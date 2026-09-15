@@ -118,5 +118,31 @@
     },
   ];
 
+  Examples.push({
+    name: 'ML - micro:bit por serial', desc: 'Recibe la clase detectada por ML - micro:bit (Bluetooth → micro:bit → serial) y la muestra con luces, medidor y alertas.',
+    project: {
+      app: 'microbit-panel-lab', version: 1, name: 'ML - micro:bit por serial',
+      sim: { vars: [{ name: 'clase', min: 0, max: 0, values: ['Arriba', 'Abajo', 'Nada'] }, { name: 'certeza', min: 60, max: 100 }] },
+      dashboard: {
+        width: 1280, height: 720, background: { color: '#f3f6f4', image: '', fit: 'cover' },
+        widgets: [
+          { id: 'm_t', type: 'texto', title: 'Título', x: 40, y: 20, w: 900, h: 60, props: { text: 'ML - micro:bit → panel por serial', size: 30, color: '#1c1f26', bold: true, showTitle: false, transparent: true } },
+          { id: 'm_ver', type: 'texto', title: 'Detectado', x: 40, y: 100, w: 700, h: 120, props: { text: 'Veo: {clase}', size: 56, color: '#1c1f26', bold: true, align: 'center', showTitle: false, transparent: false } },
+          { id: 'm_cert', type: 'medidor', title: 'Certeza', x: 780, y: 100, w: 220, h: 220, props: { source: 'certeza', min: 0, max: 100, unit: '%', decimals: 0, color: '#009f95', rules: [{ op: '<', value: 70, level: 'warn', message: 'Certeza baja: capturá más muestras' }] } },
+          { id: 'm_l1', type: 'luz', title: 'Arriba', x: 40, y: 240, w: 220, h: 220, props: { mode: 'regla', source: 'clase', label: 'Arriba', colorOn: '#22a06b', colorOff: '#4b5563', rules: [{ op: '=', value: 'Arriba', level: 'ok', message: '' }] } },
+          { id: 'm_l2', type: 'luz', title: 'Abajo', x: 280, y: 240, w: 220, h: 220, props: { mode: 'regla', source: 'clase', label: 'Abajo', colorOn: '#2f6fed', colorOff: '#4b5563', rules: [{ op: '=', value: 'Abajo', level: 'info', message: 'Detectado: Abajo' }] } },
+          { id: 'm_l3', type: 'luz', title: 'Nada', x: 520, y: 240, w: 220, h: 220, props: { mode: 'regla', source: 'clase', label: 'Nada', colorOn: '#9ca3af', colorOff: '#4b5563', rules: [{ op: '=', value: 'Nada', level: 'ok', message: '' }] } },
+          { id: 'm_al', type: 'alertas', title: 'Alertas', x: 1020, y: 100, w: 220, h: 360, props: { max: 6, showTime: true } },
+          { id: 'm_con', type: 'consola', title: 'Serial', x: 780, y: 340, w: 220, h: 120, props: { max: 20, showSend: false } },
+          { id: 'm_help', type: 'texto', title: 'Ayuda', x: 40, y: 480, w: 1200, h: 200, props: { text: 'Cómo funciona: 1) En IA · ML micro:bit entrená un modelo y conectá el micro:bit por Bluetooth.  2) Cargá en el micro:bit el programa de Herramientas → Cómo conectar ML - micro:bit (reenvía "clase:NOMBRE,certeza:NN" por el cable).  3) Acá, Conectar micro:bit (USB).\nCambiá los nombres de las luces y sus reglas (= nombre de la clase) por las clases de tu modelo.', size: 15, color: '#7a8090', showTitle: false, transparent: true } },
+        ]
+      },
+      blocks: { blocks: { languageVersion: 0, blocks: [
+        { type: 'ev_cambia', x: 30, y: 30, fields: { VAR: 'clase' }, next: { block: { type: 'al_sonido', fields: { S: 'beep' }, next: { block: { type: 'al_hablar', inputs: { TXT: { block: { type: 'sen_valor', fields: { VAR: 'clase' } } } } } } } } },
+        { type: 'ev_cambia', x: 30, y: 260, fields: { VAR: 'clase' }, next: { block: { type: 'controls_if', inputs: { IF0: cmp('EQ', val('clase'), txt('Arriba')), DO0: { block: { type: 'mb_enviar', inputs: { TXT: txt('led:1') } } } } } } },
+      ] } },
+    }
+  });
+
   global.Examples = Examples;
 })(window);

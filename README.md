@@ -54,6 +54,32 @@ serial.onDataReceived(serial.delimiters(Delimiters.NewLine), function () {
 
 En el programa que genera [ml-microbit.github.io](https://ml-microbit.github.io) agregá dentro de cada evento de la extensión ML un bloque *serial write line* con `clase:nombre`. El panel recibe la variable `clase` y podés mostrarla o hacer alertas. También podés embeber el panel en cualquier página que ya tenga conexión al micro:bit y reenviarle los datos por `postMessage` (ver abajo).
 
+## ML - micro:bit integrado (IA)
+
+La carpeta `ml/` contiene una copia íntegra de [ML - micro:bit](https://github.com/ml-microbit/ml-microbit.github.io) (Plan Ceibal): una app que entrena modelos de **imagen, audio o pose** en el navegador y le manda al micro:bit por **Bluetooth UART** la clase detectada (`Gato#87`). Se abre desde el botón **IA · ML micro:bit** o en `ml/index.html`.
+
+El panel **solo lee el cable serial**, así que el circuito es:
+
+```
+ML - micro:bit ──Bluetooth──▶ micro:bit ──USB serial──▶ Panel Lab
+                              (reenvía "clase:Gato,certeza:87")
+```
+
+Pasos (también en **Herramientas → Cómo conectar ML - micro:bit**, con el código listo para copiar):
+
+1. Entrenar el modelo en ML - micro:bit.
+2. Programar el micro:bit en el MakeCode integrado (extensión `iaMachine` ya cargada) con:
+   ```js
+   serial.setBaudRate(BaudRate.BaudRate115200)
+   iaMachine.alDetectarCualquierClase(0, function () {
+       serial.writeLine("clase:" + iaMachine.claseDetectada() + ",certeza:" + iaMachine.certezaDetectada())
+   })
+   ```
+3. Conectar el micro:bit por Bluetooth desde ML - micro:bit.
+4. Conectar el panel por USB. Llegan las variables `clase` y `certeza`, usables en textos (`{clase}`), luces con regla `= Gato`, alertas y bloques (*cuando clase cambia*). Ejemplo incluido: **ML - micro:bit por serial**.
+
+Se recomienda micro:bit V2 (Bluetooth y serial simultáneos). Para actualizar la copia, ver `ml/PROCEDENCIA.md`.
+
 ## Embeber el panel en otra página
 
 ```html
@@ -110,6 +136,7 @@ js/examples.js      proyectos de ejemplo
 js/guide.js         guía paso a paso
 js/app.js           interfaz, modos, diálogos
 vendor/blockly/     Blockly 10.4.3 (Apache-2.0)
+ml/                 copia de ML - micro:bit (Plan Ceibal), ver ml/PROCEDENCIA.md
 ```
 
 ## Requisitos

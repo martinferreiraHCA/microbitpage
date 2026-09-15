@@ -1,0 +1,26 @@
+# Dependencias
+node_modules/
+
+# Configuración local de desarrollador
+# Excepción: .claude/agents/ SÍ se versiona — los subagentes de QA son parte
+# del método de trabajo del proyecto, no configuración de máquina.
+.claude/*
+!.claude/agents/
+.vscode/
+.idea/
+*.code-workspace
+
+# Sistema operativo
+.DS_Store
+Thumbs.db
+desktop.ini
+
+# Logs y temporales
+*.log
+npm-debug.log*
+*.tmp
+*.swp
+
+# Variables de entorno
+.env
+.env.*
