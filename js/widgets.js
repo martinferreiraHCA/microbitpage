@@ -345,6 +345,61 @@
       update(body, w) { body.querySelector('form').hidden = !w.props.showSend; },
       destroy(w) { (w.state.unsub || []).forEach(f => f()); }
     },
+    flecha: {
+      name: 'Flecha / línea', icon: '➚', w: 240, h: 120, annot: true, endpoints: true,
+      props: { ax: 0, ay: 1, bx: 1, by: 0, color: '#e5484d', width: 4, head: 'end', dash: false, label: '', source: '', rules: [], showTitle: false, transparent: true },
+      schema: [
+        { key: 'head', label: 'Punta de flecha', type: 'select', options: [['end', 'Al final'], ['start', 'Al inicio'], ['both', 'En ambos extremos'], ['none', 'Sin punta (línea)']] },
+        { key: 'color', label: 'Color', type: 'color' }, { key: 'width', label: 'Grosor', type: 'number', min: 1, max: 30 },
+        { key: 'dash', label: 'Línea punteada', type: 'checkbox' },
+        { key: 'label', label: 'Etiqueta (opcional, usa {variables})', type: 'text' },
+        { key: 'source', label: 'Variable para reglas (opcional)', type: 'var' }, RULE_FIELD,
+      ],
+      render(body) { body.innerHTML = '<svg class="annot-svg"><line class="an-line"/><polygon class="an-head an-head-a"/><polygon class="an-head an-head-b"/><text class="an-label" text-anchor="middle"></text></svg>'; },
+      update(body, w, r) {
+        const p = w.props, W = w.w, H = w.h, color = r.rule ? LEVEL_COLOR[r.rule.level] : (w.state.color || p.color);
+        const sw = Math.max(1, +p.width || 4), hl = sw * 3.2;
+        let x1 = p.ax * W, y1 = p.ay * H, x2 = p.bx * W, y2 = p.by * H;
+        const ang = Math.atan2(y2 - y1, x2 - x1), len = Math.hypot(x2 - x1, y2 - y1);
+        const svg = body.querySelector('svg'); svg.setAttribute('viewBox', `0 0 ${W} ${H}`);
+        const head = (x, y, a) => `${x},${y} ${x - hl * Math.cos(a - 0.45)},${y - hl * Math.sin(a - 0.45)} ${x - hl * Math.cos(a + 0.45)},${y - hl * Math.sin(a + 0.45)}`;
+        const hb = p.head === 'end' || p.head === 'both', ha = p.head === 'start' || p.head === 'both';
+        // acortar la línea para que no asome por delante de la punta
+        const cut = hl * 0.6;
+        const lx1 = ha && len > cut ? x1 + cut * Math.cos(ang) : x1, ly1 = ha && len > cut ? y1 + cut * Math.sin(ang) : y1;
+        const lx2 = hb && len > cut ? x2 - cut * Math.cos(ang) : x2, ly2 = hb && len > cut ? y2 - cut * Math.sin(ang) : y2;
+        const line = body.querySelector('.an-line');
+        line.setAttribute('x1', lx1); line.setAttribute('y1', ly1); line.setAttribute('x2', lx2); line.setAttribute('y2', ly2);
+        line.setAttribute('stroke', color); line.setAttribute('stroke-width', sw); line.setAttribute('stroke-dasharray', p.dash ? `${sw * 2.5} ${sw * 2}` : '');
+        const pa = body.querySelector('.an-head-a'), pb = body.querySelector('.an-head-b');
+        pa.setAttribute('points', head(x1, y1, ang + Math.PI)); pa.setAttribute('fill', color); pa.style.display = ha ? '' : 'none';
+        pb.setAttribute('points', head(x2, y2, ang)); pb.setAttribute('fill', color); pb.style.display = hb ? '' : 'none';
+        const t = body.querySelector('.an-label'); t.textContent = template(p.label); t.setAttribute('fill', color);
+        t.setAttribute('x', (x1 + x2) / 2 + 14 * Math.sin(ang)); t.setAttribute('y', (y1 + y2) / 2 - 14 * Math.cos(ang) + 5); t.setAttribute('font-size', Math.max(12, sw * 3.5));
+      }
+    },
+    marco: {
+      name: 'Marco / zona', icon: '▢', w: 220, h: 220, annot: true,
+      props: { shape: 'rect', color: '#2f6fed', width: 3, dash: true, fill: 0.08, label: '', source: '', rules: [], showTitle: false, transparent: true },
+      schema: [
+        { key: 'shape', label: 'Forma', type: 'select', options: [['rect', 'Rectángulo'], ['round', 'Rectángulo redondeado'], ['circle', 'Círculo / elipse']] },
+        { key: 'color', label: 'Color', type: 'color' }, { key: 'width', label: 'Grosor del borde', type: 'number', min: 0, max: 30 },
+        { key: 'dash', label: 'Borde punteado', type: 'checkbox' }, { key: 'fill', label: 'Relleno (0 = transparente, 1 = sólido)', type: 'number', min: 0, max: 1, step: 0.05 },
+        { key: 'label', label: 'Etiqueta (opcional, usa {variables})', type: 'text' },
+        { key: 'source', label: 'Variable para reglas (opcional)', type: 'var' }, RULE_FIELD,
+      ],
+      render(body) { body.innerHTML = '<svg class="annot-svg"><rect class="an-shape"/><ellipse class="an-ellipse"/><text class="an-label" text-anchor="middle"></text></svg>'; },
+      update(body, w, r) {
+        const p = w.props, W = w.w, H = w.h, color = r.rule ? LEVEL_COLOR[r.rule.level] : (w.state.color || p.color);
+        const sw = Math.max(0, +p.width || 0), i = sw / 2 + 1;
+        const svg = body.querySelector('svg'); svg.setAttribute('viewBox', `0 0 ${W} ${H}`);
+        const rect = body.querySelector('.an-shape'), ell = body.querySelector('.an-ellipse');
+        const common = el => { el.setAttribute('stroke', color); el.setAttribute('stroke-width', sw); el.setAttribute('fill', color); el.setAttribute('fill-opacity', +p.fill || 0); el.setAttribute('stroke-dasharray', p.dash ? `${sw * 3} ${sw * 2}` : ''); };
+        if (p.shape === 'circle') { rect.style.display = 'none'; ell.style.display = ''; ell.setAttribute('cx', W / 2); ell.setAttribute('cy', H / 2); ell.setAttribute('rx', W / 2 - i); ell.setAttribute('ry', H / 2 - i); common(ell); }
+        else { ell.style.display = 'none'; rect.style.display = ''; rect.setAttribute('x', i); rect.setAttribute('y', i); rect.setAttribute('width', W - 2 * i); rect.setAttribute('height', H - 2 * i); rect.setAttribute('rx', p.shape === 'round' ? 16 : 0); common(rect); }
+        const t = body.querySelector('.an-label'); t.textContent = template(p.label); t.setAttribute('fill', color); t.setAttribute('x', W / 2); t.setAttribute('y', Math.max(18, sw + 18)); t.setAttribute('font-size', 15);
+      }
+    },
     tabla: {
       name: 'Tabla de variables', icon: '📋', w: 220, h: 220,
       props: { filter: '' },
@@ -473,7 +528,41 @@
         if (act === 'del') this.remove(w.id); else if (act === 'dup') this.duplicate(w.id); else if (act === 'settings') { this.select(w.id); Bus.emit('dash:openprops'); }
       });
       cover.addEventListener('dblclick', () => { this.select(w.id); Bus.emit('dash:openprops'); });
+      if (T.annot) el.classList.add('annot');
+      if (T.endpoints) this._mountEndpoints(w);
       this._dirty = true;
+    },
+
+    /** Manijas para mover cada extremo de una flecha/línea. */
+    _mountEndpoints(w) {
+      const PAD = 12;
+      ['a', 'b'].forEach(k => {
+        const h = document.createElement('div'); h.className = 'w-pt w-pt-' + k; w.el.appendChild(h);
+        h.addEventListener('pointerdown', ev => {
+          if (!this.editMode || ev.button !== 0) return;
+          ev.preventDefault(); ev.stopPropagation(); this.select(w.id);
+          const p = w.props;
+          // puntos absolutos en el lienzo
+          const fixed = k === 'a' ? { x: w.x + p.bx * w.w, y: w.y + p.by * w.h } : { x: w.x + p.ax * w.w, y: w.y + p.ay * w.h };
+          const start = k === 'a' ? { x: w.x + p.ax * w.w, y: w.y + p.ay * w.h } : { x: w.x + p.bx * w.w, y: w.y + p.by * w.h };
+          const sx = ev.clientX, sy = ev.clientY;
+          const move = e => {
+            const mv = { x: Util.clamp(Math.round((start.x + (e.clientX - sx) / this.scale) / 5) * 5, 0, this.width), y: Util.clamp(Math.round((start.y + (e.clientY - sy) / this.scale) / 5) * 5, 0, this.height) };
+            const A = k === 'a' ? mv : fixed, B = k === 'a' ? fixed : mv;
+            const minx = Math.min(A.x, B.x) - PAD, miny = Math.min(A.y, B.y) - PAD;
+            w.x = minx; w.y = miny; w.w = Math.max(2 * PAD + 4, Math.abs(A.x - B.x) + 2 * PAD); w.h = Math.max(2 * PAD + 4, Math.abs(A.y - B.y) + 2 * PAD);
+            p.ax = (A.x - minx) / w.w; p.ay = (A.y - miny) / w.h; p.bx = (B.x - minx) / w.w; p.by = (B.y - miny) / w.h;
+            this.place(w); this._placeEndpoints(w);
+          };
+          const up = () => { window.removeEventListener('pointermove', move); window.removeEventListener('pointerup', up); this.changed(); };
+          window.addEventListener('pointermove', move); window.addEventListener('pointerup', up);
+        });
+      });
+      this._placeEndpoints(w);
+    },
+    _placeEndpoints(w) {
+      const p = w.props, a = w.el.querySelector('.w-pt-a'), b = w.el.querySelector('.w-pt-b'); if (!a) return;
+      a.style.left = (p.ax * w.w) + 'px'; a.style.top = (p.ay * w.h) + 'px'; b.style.left = (p.bx * w.w) + 'px'; b.style.top = (p.by * w.h) + 'px';
     },
 
     place(w) {
@@ -482,6 +571,7 @@
       el.querySelector('.w-title').textContent = w.title;
       el.classList.toggle('no-title', !w.props.showTitle); el.classList.toggle('transparent', !!w.props.transparent);
       el.classList.toggle('hidden-widget', w.visible === false);
+      if (Types[w.type].endpoints) this._placeEndpoints(w);
       this._dirty = true;
     },
 

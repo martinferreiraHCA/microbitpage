@@ -15,7 +15,7 @@ micro:bit ──USB/serial──▶  Panel Lab  ──▶  panel de monitoreo (m
 | Área | Funciones |
 | --- | --- |
 | **Conexión** | Web Serial (Chrome/Edge) con el micro:bit por USB. Formatos `temp:23,luz:140`, `temp=23`, JSON, CSV o texto suelto. Simulador de datos para practicar sin placa. |
-| **Panel** | Widgets arrastrables y redimensionables: valor numérico, medidor, barra, gráfico, luz indicadora, texto con `{variables}`, botón, deslizador, interruptor, lista de alertas, imagen, cámara, consola serial, tabla de variables. Título, colores, unidades, "sin tarjeta" para flotar sobre una imagen. |
+| **Panel** | Widgets arrastrables y redimensionables: valor numérico, medidor, barra, gráfico, luz indicadora, texto con `{variables}`, botón, deslizador, interruptor, lista de alertas, imagen, cámara, consola serial, tabla de variables, **flechas/líneas y marcos** para señalar lugares sobre el fondo. Título, colores, unidades, "sin tarjeta" para flotar sobre una imagen. |
 | **Fondo** | Imagen de fondo (foto, plano, mapa) con ajuste; el panel se escala a cualquier pantalla manteniendo la posición de los indicadores. Tamaños 16:9, 4:3, Full HD, vertical. |
 | **Alertas** | Reglas por widget (`si el valor > 30 → Peligro → "¡Hace calor!"`) con cambio de color, sonido y lista de alertas. Desde bloques: alerta, sonido, voz, notificación. |
 | **Bloques** | Eventos (cuando llegan datos, cuando X cambia, cada N segundos, botón, control, cámara, al iniciar), sensores (valor, promedio/máximo/mínimo, mapear), panel (mostrar, luz, color, texto, ocultar, imagen, fondo), micro:bit (enviar texto / `nombre:valor`), cámara/IA, más control, lógica, matemáticas, texto, variables y funciones. |

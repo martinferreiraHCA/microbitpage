@@ -108,6 +108,16 @@ button:disabled { opacity: .45; cursor: default; }
 #dash-viewport.edit .widget.transparent { outline: 1px dashed rgba(47,111,237,.4); outline-offset: -1px; }
 #dash-viewport.edit .widget .w-resize { display: block; position: absolute; right: 4px; bottom: 4px; width: 14px; height: 14px; cursor: nwse-resize; z-index: 7; border-right: 3px solid var(--primary); border-bottom: 3px solid var(--primary); border-radius: 0 0 4px 0; opacity: .5; }
 
+/* anotaciones (flechas, marcos) */
+.widget.annot { padding: 0; overflow: visible; pointer-events: none; }
+#dash-viewport.edit .widget.annot { pointer-events: auto; }
+.widget.annot .w-body { overflow: visible; }
+.annot-svg { width: 100%; height: 100%; display: block; overflow: visible; }
+.an-label { font-weight: 700; paint-order: stroke; stroke: #fff; stroke-width: 4px; stroke-linejoin: round; font-family: inherit; }
+.widget .w-pt { display: none; }
+#dash-viewport.edit .widget.annot .w-pt { display: block; position: absolute; width: 16px; height: 16px; margin: -8px 0 0 -8px; border-radius: 50%; background: #fff; border: 3px solid var(--primary); z-index: 9; cursor: crosshair; box-shadow: 0 1px 4px rgba(0,0,0,.3); }
+#dash-viewport.edit .widget.annot.transparent { outline-color: rgba(47,111,237,.25); }
+
 /* contenidos de widgets */
 .v-big { flex: 1; display: flex; align-items: center; justify-content: center; gap: 0; font-weight: 700; line-height: 1; white-space: nowrap; overflow: hidden; letter-spacing: -.02em; font-variant-numeric: tabular-nums; }
 .v-unit { font-size: .4em; color: var(--muted); font-weight: 500; align-self: flex-end; margin: 0 0 .15em .15em; }

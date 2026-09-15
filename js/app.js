@@ -73,6 +73,7 @@
       $('#btn-props').onclick = () => this.openProps(true);
       $('#btn-lock').onclick = () => Dashboard.setEditMode(!Dashboard.editMode);
       $('#btn-bg').onclick = () => this.openBackground();
+      $('#btn-arrow').onclick = () => { Dashboard.setEditMode(true); Dashboard.add('flecha'); this.openProps(); };
             $('#btn-data').onclick = () => this.openData();
       $('#btn-microbit-code').onclick = () => this.openMicrobitCode();
       $('#btn-embed').onclick = () => this.openEmbed();
