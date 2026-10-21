@@ -49,18 +49,22 @@
     stopCamera();
     setStatus('Cargando modelo…');
     try {
-      const meta = await (await fetch(url + 'metadata.json')).json();
+      // Google sirve metadata.json y model.json con caché de 1 hora: si volvés a subir el
+      // modelo con otras clases, sin esto el navegador seguiría mostrando las viejas.
+      const bust = '?v=' + Date.now();
+      const meta = await (await fetch(url + 'metadata.json' + bust, { cache: 'no-store' })).json();
       const type = meta.wordLabels ? 'audio' : (/pose/i.test(meta.packageName || '') ? 'pose' : 'image');
       await loadScript(LIBS.tf);
       await loadScript(LIBS[type]);
       let classes;
+      if (state.model && state.model.dispose) { try { state.model.dispose(); } catch (e) {} }
       if (type === 'audio') {
-        const rec = speechCommands.create('BROWSER_FFT', undefined, url + 'model.json', url + 'metadata.json');
+        const rec = speechCommands.create('BROWSER_FFT', undefined, url + 'model.json' + bust, url + 'metadata.json' + bust);
         await rec.ensureModelLoaded();
         state.recognizer = rec; state.model = null; classes = rec.wordLabels();
       } else {
         const lib = type === 'pose' ? tmPose : tmImage;
-        state.model = await lib.load(url + 'model.json', url + 'metadata.json');
+        state.model = await lib.load(url + 'model.json' + bust, meta);
         state.recognizer = null; classes = state.model.getClassLabels();
       }
       state.url = url; state.type = type; state.classes = classes.map(safeName);
@@ -103,16 +107,19 @@
         if (!state.running) return;
         try {
           let preds;
+          // Teachable Machine entrena con la cámara espejada: hay que predecir igual,
+          // si no las clases que dependen de izquierda/derecha se confunden.
+          const flip = $('#chk-mirror').checked;
           if (state.type === 'pose') {
-            const { pose, posenetOutput } = await state.model.estimatePose(video);
+            const { pose, posenetOutput } = await state.model.estimatePose(video, flip);
             preds = await state.model.predict(posenetOutput);
-            canvas.width = video.videoWidth; canvas.height = video.videoHeight;
+            if (canvas.width !== video.videoWidth) { canvas.width = video.videoWidth; canvas.height = video.videoHeight; }
             const ctx = canvas.getContext('2d'); ctx.clearRect(0, 0, canvas.width, canvas.height);
             if (pose) { tmPose.drawKeypoints(pose.keypoints, 0.5, ctx); tmPose.drawSkeleton(pose.keypoints, 0.5, ctx); }
-          } else preds = await state.model.predict(video);
+          } else preds = await state.model.predict(video, flip);
           onPreds(preds.map(p => ({ className: safeName(p.className), probability: p.probability })));
         } catch (e) { console.warn(e); }
-        state.timer = setTimeout(loop, 120);
+        state.timer = setTimeout(loop, 60);
       };
       loop();
     } catch (e) { console.error(e); toast('Cámara: ' + e.message, 'error'); stopCamera(); }
@@ -304,6 +311,12 @@ namespace teachable {
     $('#editor-placeholder').hidden = true;
     let saved = null;
     if (!reset) { try { saved = JSON.parse(localStorage.getItem(projectKey()) || 'null'); } catch (e) {} }
+    // Si el modelo se volvió a subir con otras clases, el programa guardado apunta a clases que
+    // ya no existen: se genera uno nuevo con las clases actuales.
+    const savedClasses = localStorage.getItem(projectKey() + ':classes') || '';
+    const classesNow = JSON.stringify(state.classes);
+    if (saved && savedClasses && savedClasses !== classesNow) { saved = null; toast('Las clases del modelo cambiaron: se generó un programa nuevo con las clases actuales.', 'warn', 7000); }
+    localStorage.setItem(projectKey() + ':classes', classesNow);
     if (saved && saved.text && typeof saved.text === 'object' && Object.keys(saved.text).length) {
       state.project = { ...saved, text: { ...saved.text, 'teachable.ts': teachableTs(), 'tm-classes.ts': classesTs() } };
     } else state.project = freshProject();
@@ -332,6 +345,7 @@ namespace teachable {
   $('.cam').classList.add('mirror');
   $('#btn-help').addEventListener('click', () => $('#help').scrollIntoView({ behavior: 'smooth' }));
   $('#btn-reset-code').addEventListener('click', () => { if (!state.url) return; if (confirm('Se reemplaza el programa actual por el de ejemplo. ¿Continuar?')) { localStorage.removeItem(projectKey()); openMakeCode(true); } });
+  $('#btn-reload').addEventListener('click', () => { if (state.url) loadModel(state.url); });
   if (!navigator.serial) $('#mb-status').textContent = 'este navegador no tiene Web Serial (usá Chrome o Edge)';
   const params = new URLSearchParams(location.search);
   const initial = params.get('model') || localStorage.getItem('tm2mb:url') || '';
