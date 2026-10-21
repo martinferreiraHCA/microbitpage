@@ -72,6 +72,16 @@ ML - micro:bit (entrenar) ──▶ Cámara / IA del panel (detectar) ──▶ 
 
 Alternativa por Bluetooth (micro:bit lejos de la computadora): ML - micro:bit manda las clases por BLE con la extensión `iaMachine` y el micro:bit las reenvía al panel por serial; el mismo diálogo muestra ese programa. Para actualizar la copia de la app, ver `ml/PROCEDENCIA.md`.
 
+## Teachable Machine → micro:bit (proyecto aparte, mínimo)
+
+`teachable/index.html` es una página independiente, pensada para una sola cosa: conectar un modelo de [Teachable Machine](https://teachablemachine.withgoogle.com) (imagen, pose o audio) con el micro:bit en tres pasos.
+
+1. **Pegar el enlace del modelo** (Exportar → Subir modelo). Se detecta el tipo y aparecen las clases.
+2. **Programar en el MakeCode embebido**, que se abre con la categoría **Teachable** generada a partir de las clases: *al detectar [Gato] con certeza > 70 %*, *al detectar cualquier clase*, *¿se detecta…?*, *clase detectada*, *certeza detectada*. Los bloques viven en el propio proyecto (`teachable.ts`), sin extensiones externas. **Descargar** al micro:bit.
+3. **Iniciar la cámara** (o micrófono) y **Conectar por USB**: la página manda cada detección por serial como `Clase#certeza` (115200 baudios) y el programa reacciona.
+
+El programa de MakeCode queda guardado en el navegador por cada modelo. Parámetro `?model=URL` para abrir con un modelo cargado. Chrome o Edge en computadora.
+
 ## Embeber el panel en otra página
 
 ```html
@@ -129,6 +139,7 @@ js/guide.js         guía paso a paso
 js/app.js           interfaz, modos, diálogos
 vendor/blockly/     Blockly 10.4.3 (Apache-2.0)
 ml/                 copia de ML - micro:bit (Plan Ceibal), ver ml/PROCEDENCIA.md
+teachable/          proyecto aparte: Teachable Machine → micro:bit con MakeCode embebido
 ```
 
 ## Requisitos

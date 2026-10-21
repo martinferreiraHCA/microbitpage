@@ -1,0 +1,82 @@
+<!DOCTYPE html>
+<html lang="es">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Teachable Machine → micro:bit</title>
+  <meta name="description" content="Conectá un modelo de Teachable Machine con tu micro:bit en tres pasos: pegá el enlace del modelo, programá con bloques en el editor MakeCode embebido y conectá el micro:bit por USB.">
+  <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🤖</text></svg>">
+  <link rel="stylesheet" href="style.css">
+</head>
+<body>
+  <header class="top">
+    <div class="brand">🤖 Teachable Machine <span>→</span> micro:bit</div>
+    <div class="top-links"><a href="https://teachablemachine.withgoogle.com/train" target="_blank" rel="noopener">Entrenar un modelo ↗</a><button class="link" id="btn-help">¿Cómo funciona?</button></div>
+  </header>
+
+  <main class="layout">
+    <aside class="side">
+      <section class="step" id="step-model">
+        <h2><i>1</i> Pegá el enlace del modelo</h2>
+        <p class="muted">En Teachable Machine: <b>Exportar modelo → Subir (compartible) → copiar enlace</b>. Sirve para modelos de imagen, pose o audio.</p>
+        <form id="model-form" class="row">
+          <input id="model-url" type="url" placeholder="https://teachablemachine.withgoogle.com/models/xxxxxxxx/" required>
+          <button class="btn primary" type="submit" id="btn-load">Cargar</button>
+        </form>
+        <div class="status" id="model-status">Todavía no cargaste un modelo.</div>
+        <div class="classes" id="classes"></div>
+      </section>
+
+      <section class="step" id="step-camera">
+        <h2><i>2</i> Probá el modelo</h2>
+        <div class="cam">
+          <video id="video" autoplay playsinline muted hidden></video>
+          <canvas id="pose-canvas" hidden></canvas>
+          <div class="cam-audio" id="cam-audio" hidden>🎤<small>escuchando</small></div>
+          <div class="cam-off" id="cam-off"><button class="btn" id="btn-cam" disabled>▶ Iniciar cámara</button><small id="cam-hint">Primero cargá un modelo</small></div>
+        </div>
+        <div class="preds" id="preds"></div>
+        <div class="row small">
+          <label><input type="checkbox" id="chk-mirror" checked> espejar</label>
+          <button class="mini" id="btn-cam-stop" hidden>■ Detener</button>
+        </div>
+      </section>
+
+      <section class="step" id="step-microbit">
+        <h2><i>3</i> Conectá el micro:bit</h2>
+        <p class="muted">Primero descargá el programa del editor (derecha) al micro:bit. Después conectalo acá por USB: cada detección viaja como <code>Clase#certeza</code>.</p>
+        <div class="row">
+          <button class="btn primary" id="btn-connect">🔌 Conectar por USB</button>
+          <span class="dot" id="dot"></span><span id="mb-status" class="muted">desconectado</span>
+        </div>
+        <div class="sent" id="sent">—</div>
+        <div class="row small"><label>Enviar solo si la certeza supera <input type="number" id="min-conf" value="0" min="0" max="100" style="width:60px"> %</label></div>
+      </section>
+
+      <section class="step help" id="help">
+        <h2>¿Cómo funciona?</h2>
+        <ol>
+          <li>Entrenás un modelo en <b>Teachable Machine</b> y lo subís (Exportar → Subir modelo). Pegás el enlace acá.</li>
+          <li>El editor de la derecha ya tiene la categoría <b>Teachable</b> con tus clases: <i>al detectar [Gato] con certeza &gt; 70 %</i>. Armá el programa y bajalo al micro:bit con <b>Descargar</b>.</li>
+          <li>Iniciá la cámara (o el micrófono) y conectá el micro:bit por USB. Esta página le manda cada detección por el cable, y el programa reacciona.</li>
+        </ol>
+        <p class="muted">Funciona en Chrome o Edge en computadora. El programa queda guardado en este navegador junto con el enlace del modelo.</p>
+      </section>
+    </aside>
+
+    <section class="editor">
+      <div class="editor-head">
+        <span>Programá el micro:bit</span>
+        <span class="muted" id="editor-hint">Cargá un modelo para que aparezcan tus clases en la categoría <b>Teachable</b>.</span>
+        <button class="mini" id="btn-reset-code" title="Volver a cargar el programa de ejemplo">Programa de ejemplo</button>
+      </div>
+      <div class="editor-wrap"><iframe id="makecode" title="MakeCode para micro:bit" allow="usb; serial; clipboard-write; autoplay; fullscreen"></iframe>
+        <div class="editor-placeholder" id="editor-placeholder"><div>👈 Cargá un modelo y acá se abre MakeCode con los bloques de tus clases.</div></div>
+      </div>
+    </section>
+  </main>
+
+  <div id="toasts"></div>
+  <script src="app.js"></script>
+</body>
+</html>
