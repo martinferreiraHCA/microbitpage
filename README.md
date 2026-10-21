@@ -72,15 +72,15 @@ ML - micro:bit (entrenar) ──▶ Cámara / IA del panel (detectar) ──▶ 
 
 Alternativa por Bluetooth (micro:bit lejos de la computadora): ML - micro:bit manda las clases por BLE con la extensión `iaMachine` y el micro:bit las reenvía al panel por serial; el mismo diálogo muestra ese programa. Para actualizar la copia de la app, ver `ml/PROCEDENCIA.md`.
 
-## Teachable Machine → micro:bit (proyecto aparte, mínimo)
+## IA con cámara → micro:bit (proyecto aparte, con entrenador propio)
 
-`teachable/index.html` es una página independiente, pensada para una sola cosa: conectar un modelo de [Teachable Machine](https://teachablemachine.withgoogle.com) (imagen, pose o audio) con el micro:bit en tres pasos.
+`teachable/index.html` es una página independiente con **su propio entrenador de imágenes**: no depende de Teachable Machine ni de servicios externos (usa los módulos de ML - micro:bit y un MobileNet alojado en el sitio).
 
-1. **Pegar el enlace del modelo** (Exportar → Subir modelo). Se detecta el tipo y aparecen las clases.
-2. **Programar en el MakeCode embebido**, que se abre con la categoría **Teachable** generada a partir de las clases: *al detectar [Gato] con certeza > 70 %*, *al detectar cualquier clase*, *¿se detecta…?*, *clase detectada*, *certeza detectada*. Los bloques viven en el propio proyecto (`teachable.ts`), sin extensiones externas. **Descargar** al micro:bit.
-3. **Iniciar la cámara** (o micrófono) y **Conectar por USB**: la página manda cada detección por serial como `Clase#certeza` (115200 baudios) y el programa reacciona.
+1. **Entrenar:** iniciar la cámara, nombrar las clases, mantener apretado **Capturar** para grabar muestras (mínimo 8 por clase) y presionar **Entrenar modelo**. Modelo y muestras quedan guardados en el navegador (IndexedDB), así que se puede retomar otro día. Como alternativa, se puede pegar el enlace de un modelo de imágenes de Teachable Machine.
+2. **Programar en el MakeCode embebido**, que se abre con la categoría **Teachable** generada con las clases: *al detectar [Gato] con certeza > 70 %*, *al detectar cualquier clase*, *¿se detecta…?*, *clase detectada*, *certeza detectada*. Los bloques viven en el propio proyecto (`teachable.ts`). **Download** al micro:bit.
+3. **Conectar por USB:** la página manda cada detección por serial como `Clase#certeza` (115200 baudios) y el programa reacciona.
 
-El programa de MakeCode queda guardado en el navegador por cada modelo. Parámetro `?model=URL` para abrir con un modelo cargado. Chrome o Edge en computadora.
+Chrome o Edge en computadora. Primero descargar el programa y después conectar el puerto serial.
 
 ## Embeber el panel en otra página
 
@@ -139,7 +139,7 @@ js/guide.js         guía paso a paso
 js/app.js           interfaz, modos, diálogos
 vendor/blockly/     Blockly 10.4.3 (Apache-2.0)
 ml/                 copia de ML - micro:bit (Plan Ceibal), ver ml/PROCEDENCIA.md
-teachable/          proyecto aparte: Teachable Machine → micro:bit con MakeCode embebido
+teachable/          proyecto aparte: entrenador de imágenes propio → micro:bit con MakeCode embebido
 ```
 
 ## Requisitos
