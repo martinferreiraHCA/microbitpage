@@ -46,8 +46,10 @@
   /* ---------- paso 1: modelo ---------- */
   async function loadModel(url) {
     url = normalizeUrl(url); if (!url) return;
+    const wasRunning = state.running;
     stopCamera();
     setStatus('Cargando modelo…');
+    $('#btn-load').disabled = true;
     try {
       // Google sirve metadata.json y model.json con caché de 1 hora: si volvés a subir el
       // modelo con otras clases, sin esto el navegador seguiría mostrando las viejas.
@@ -71,15 +73,18 @@
       localStorage.setItem('tm2mb:url', url);
       setStatus(`Modelo de ${type === 'image' ? 'imagen' : type === 'pose' ? 'pose' : 'audio'} listo ✔`, 'ok');
       $('#classes').innerHTML = state.classes.map(c => `<span>${esc(c)}</span>`).join('');
+      renderPreds(state.classes.map(c => ({ className: c, probability: 0 })), null);   // clases a la vista desde el inicio
       $('#step-model').classList.add('done');
       $('#btn-cam').disabled = false; $('#btn-cam').textContent = type === 'audio' ? '▶ Iniciar micrófono' : '▶ Iniciar cámara';
       $('#cam-hint').textContent = type === 'audio' ? 'Usa el micrófono de la computadora' : 'Usa la cámara de la computadora';
       $('#editor-hint').innerHTML = `Categoría <b>Teachable</b>: ${state.classes.map(esc).join(', ')}. Cuando termines, <b>Descargar</b> al micro:bit.`;
       openMakeCode();
       const u = new URL(location.href); u.searchParams.set('model', url); history.replaceState(null, '', u);
+      if (wasRunning) startCamera();   // la cámara sigue andando con el modelo nuevo
     } catch (e) {
       console.error(e); setStatus('No se pudo cargar el modelo: ' + e.message + '. Revisá el enlace (debe ser el de "Subir modelo").', 'error');
     }
+    $('#btn-load').disabled = false;
   }
   function setStatus(msg, cls) { const el = $('#model-status'); el.textContent = msg; el.className = 'status ' + (cls || ''); }
 
@@ -129,13 +134,17 @@
     if (state.recognizer) { try { if (state.recognizer.isListening()) state.recognizer.stopListening(); } catch (e) {} }
     if (state.stream) { state.stream.getTracks().forEach(t => t.stop()); state.stream = null; }
     const v = $('#video'); v.srcObject = null; v.hidden = true; $('#pose-canvas').hidden = true; $('#cam-audio').hidden = true;
-    $('#cam-off').hidden = false; $('#btn-cam-stop').hidden = true; $('#preds').innerHTML = ''; state.best = null;
+    $('#cam-off').hidden = false; $('#btn-cam-stop').hidden = true; state.best = null;
+    if (state.classes.length) renderPreds(state.classes.map(c => ({ className: c, probability: 0 })), null);
+  }
+  function renderPreds(preds, best) {
+    $('#preds').innerHTML = preds.map(p => `<div class="pred ${p === best ? 'top' : ''}"><span>${esc(p.className)}</span><div class="bar"><i style="width:${(p.probability * 100).toFixed(0)}%"></i></div><b>${(p.probability * 100).toFixed(0)}%</b></div>`).join('');
   }
   function onPreds(preds) {
     if (!preds || !preds.length) return;
     let best = preds[0]; for (const p of preds) if (p.probability > best.probability) best = p;
     state.best = best;
-    $('#preds').innerHTML = preds.map(p => `<div class="pred ${p === best ? 'top' : ''}"><span>${esc(p.className)}</span><div class="bar"><i style="width:${(p.probability * 100).toFixed(0)}%"></i></div><b>${(p.probability * 100).toFixed(0)}%</b></div>`).join('');
+    renderPreds(preds, best);
     $('#step-camera').classList.add('done');
     const now = Date.now();
     if (now - state.lastSent >= SEND_EVERY_MS) { state.lastSent = now; send(best); }

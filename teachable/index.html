@@ -6,7 +6,7 @@
   <title>Teachable Machine → micro:bit</title>
   <meta name="description" content="Conectá un modelo de Teachable Machine con tu micro:bit en tres pasos: pegá el enlace del modelo, programá con bloques en el editor MakeCode embebido y conectá el micro:bit por USB.">
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🤖</text></svg>">
-  <link rel="stylesheet" href="style.css">
+  <link rel="stylesheet" href="style.css?v=4">
 </head>
 <body>
   <header class="top">
@@ -24,6 +24,7 @@
           <button class="btn primary" type="submit" id="btn-load">Cargar</button>
         </form>
         <div class="status" id="model-status">Todavía no cargaste un modelo.</div>
+        <div class="status" id="cam-note"></div>
         <div class="row small"><button class="mini" id="btn-reload" title="Vuelve a descargar el modelo (si lo re-entrenaste y subiste de nuevo)">↻ Volver a cargar el modelo</button></div>
         <div class="classes" id="classes"></div>
       </section>
@@ -78,6 +79,6 @@
   </main>
 
   <div id="toasts"></div>
-  <script src="app.js"></script>
+  <script src="app.js?v=4"></script>
 </body>
 </html>
