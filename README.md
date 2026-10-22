@@ -82,6 +82,8 @@ Alternativa por Bluetooth (micro:bit lejos de la computadora): ML - micro:bit ma
 
 Chrome o Edge en computadora. Primero descargar el programa y después conectar el puerto serial.
 
+**Guardar / abrir proyecto:** el botón **⬇ Guardar todo** descarga un solo archivo `.json` con el modelo entrenado (pesos), las muestras, los nombres de clases, el programa de MakeCode y la interfaz del lienzo; **📂 Abrir proyecto** lo recupera entero en cualquier computadora. Funciona sin conexión (todo ocurre en el navegador).
+
 **Pestaña "Visualizar datos":** con el modelo entrenado y la cámara andando, un lienzo de diseño drag & drop para armar una interfaz propia: cámara en vivo, clase detectada, certeza, barras por clase, luces por clase (con umbral), contadores, texto con `{clase}`/`{certeza}`, historial de los últimos 60 s, estado del micro:bit e imágenes; fondo de color o imagen, modo bloqueado y pantalla completa. El diseño se guarda en el navegador y se puede descargar/abrir como JSON.
 
 ## Embeber el panel en otra página

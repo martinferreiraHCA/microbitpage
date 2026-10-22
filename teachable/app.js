@@ -8,6 +8,7 @@
 import * as trainer from '../ml/js/image-trainer.js';
 import { Webcam } from '../ml/js/webcam.js';
 import { Designer } from './designer.js';
+import { SAMPLES_DB_NAME, SAMPLES_DB_VERSION, SAMPLES_STORE, imageSamplesKey } from '../ml/js/storage-keys.js';
 
 const $ = s => document.querySelector(s);
 const PROJECT_ID = 'tm2mb';                 // clave de muestras/modelo en IndexedDB
@@ -398,6 +399,63 @@ window.addEventListener('message', ev => {
   else if (d.action === 'workspacesave' && d.project && d.project.text) { try { localStorage.setItem(projectKey(), JSON.stringify(d.project)); } catch (e) {} }
 });
 
+/* ---------- guardar / abrir el proyecto completo (sin conexión) ---------- */
+function idb() { return new Promise((res, rej) => { const r = indexedDB.open(SAMPLES_DB_NAME, SAMPLES_DB_VERSION); r.onupgradeneeded = e => { const db = e.target.result; if (!db.objectStoreNames.contains(SAMPLES_STORE)) db.createObjectStore(SAMPLES_STORE); }; r.onsuccess = () => res(r.result); r.onerror = () => rej(r.error); }); }
+async function idbGet(key) { const db = await idb(); return new Promise((res, rej) => { const q = db.transaction(SAMPLES_STORE).objectStore(SAMPLES_STORE).get(key); q.onsuccess = () => res(q.result); q.onerror = () => rej(q.error); }); }
+async function idbPut(key, value) { const db = await idb(); return new Promise((res, rej) => { const tx = db.transaction(SAMPLES_STORE, 'readwrite'); tx.objectStore(SAMPLES_STORE).put(value, key); tx.oncomplete = res; tx.onerror = () => rej(tx.error); }); }
+function bufToB64(buf) { const bytes = new Uint8Array(buf); let s = ''; for (let i = 0; i < bytes.length; i += 0x8000) s += String.fromCharCode.apply(null, bytes.subarray(i, i + 0x8000)); return btoa(s); }
+function b64ToBuf(b64) { const bin = atob(b64); const bytes = new Uint8Array(bin.length); for (let i = 0; i < bin.length; i++) bytes[i] = bin.charCodeAt(i); return bytes.buffer; }
+
+async function exportProject() {
+  const btn = $('#btn-export'); btn.disabled = true; btn.textContent = 'Preparando…';
+  try {
+    await trainer.saveSamples(PROJECT_ID).catch(() => {});
+    const st = loadState() || {};
+    const data = { app: 'ia-camara-microbit', v: 1, saved: new Date().toISOString(), classNames: state.classes.slice(), model: null, samples: (await idbGet(imageSamplesKey(PROJECT_ID))) || [], makecode: null, makecodeClasses: localStorage.getItem('tm2mb:project:native:classes') || '', design: Designer.serialize() };
+    try { data.makecode = JSON.parse(localStorage.getItem('tm2mb:project:native') || 'null'); } catch (e) {}
+    if (st.modelInfo && st.modelInfo.storageKey) {
+      const m = await tf.loadLayersModel('indexeddb://' + st.modelInfo.storageKey);
+      const art = await new Promise(res => m.save(tf.io.withSaveHandler(async a => { res(a); return { modelArtifactsInfo: { dateSaved: new Date(), modelTopologyType: 'JSON' } }; })));
+      m.dispose();
+      let wd = art.weightData; if (Array.isArray(wd)) { const total = wd.reduce((n, b) => n + b.byteLength, 0); const out = new Uint8Array(total); let o = 0; wd.forEach(b => { out.set(new Uint8Array(b), o); o += b.byteLength; }); wd = out.buffer; }
+      data.model = { info: st.modelInfo, modelTopology: art.modelTopology, weightSpecs: art.weightSpecs, format: art.format, generatedBy: art.generatedBy, convertedBy: art.convertedBy, weightsB64: bufToB64(wd) };
+    }
+    const name = 'proyecto-ia-microbit-' + new Date().toISOString().slice(0, 10) + '.json';
+    const a = document.createElement('a'); a.href = URL.createObjectURL(new Blob([JSON.stringify(data)], { type: 'application/json' })); a.download = name; document.body.appendChild(a); a.click(); a.remove(); setTimeout(() => URL.revokeObjectURL(a.href), 2000);
+    toast(`Proyecto guardado: ${data.classNames.length} clases, ${data.samples.length} muestras${data.model ? ', modelo entrenado' : ''}, programa e interfaz.`, 'ok', 6000);
+  } catch (e) { console.error(e); toast('No se pudo guardar: ' + e.message, 'error', 6000); }
+  btn.disabled = false; btn.textContent = '⬇ Guardar todo';
+}
+function importProject() {
+  const inp = document.createElement('input'); inp.type = 'file'; inp.accept = '.json,application/json';
+  inp.onchange = async () => {
+    const f = inp.files[0]; if (!f) return;
+    try {
+      const d = JSON.parse(await f.text());
+      if (!d || d.app !== 'ia-camara-microbit' || !Array.isArray(d.classNames)) throw new Error('no es un proyecto de esta página');
+      if (!confirm(`Se reemplaza lo que hay en este navegador por el proyecto "${f.name}" (${d.classNames.length} clases, ${(d.samples || []).length} muestras${d.model ? ', modelo entrenado' : ''}). ¿Continuar?`)) return;
+      toast('Recuperando el proyecto…', '', 4000);
+      // muestras
+      await idbPut(imageSamplesKey(PROJECT_ID), Array.isArray(d.samples) ? d.samples : []);
+      // modelo entrenado
+      let modelInfo = null;
+      if (d.model && d.model.weightsB64 && d.model.modelTopology) {
+        const art = { modelTopology: d.model.modelTopology, weightSpecs: d.model.weightSpecs, weightData: b64ToBuf(d.model.weightsB64), format: d.model.format, generatedBy: d.model.generatedBy, convertedBy: d.model.convertedBy };
+        const m = await tf.loadLayersModel(tf.io.fromMemory(art));
+        modelInfo = { ...(d.model.info || {}), source: 'local', storageKey: 'ml-image-local-' + PROJECT_ID, classNames: d.classNames.slice(), featureExtractor: 'mobilenet_v1_0.25_224', trainedAt: (d.model.info && d.model.info.trainedAt) || d.saved };
+        await m.save('indexeddb://' + modelInfo.storageKey); m.dispose();
+      }
+      localStorage.setItem(STORE_KEY, JSON.stringify({ classNames: d.classNames.slice(), modelInfo }));
+      // programa del micro:bit e interfaz
+      if (d.makecode && d.makecode.text) localStorage.setItem('tm2mb:project:native', JSON.stringify(d.makecode)); else localStorage.removeItem('tm2mb:project:native');
+      localStorage.setItem('tm2mb:project:native:classes', d.makecodeClasses || JSON.stringify(d.classNames));
+      if (d.design) localStorage.setItem('tm2mb:design', JSON.stringify(d.design));
+      location.reload();
+    } catch (e) { console.error(e); toast('No se pudo abrir el proyecto: ' + e.message, 'error', 7000); }
+  };
+  inp.click();
+}
+
 /* ---------- arranque ---------- */
 $('#btn-cam').addEventListener('click', startCamera);
 $('#chk-mirror').addEventListener('change', ev => { if (state.webcam) state.webcam.flip = ev.target.checked; });
@@ -405,6 +463,8 @@ $('#btn-add-class').addEventListener('click', () => { if (state.classes.length >
 $('#btn-train').addEventListener('click', train);
 $('#model-form').addEventListener('submit', ev => { ev.preventDefault(); loadTmUrl($('#model-url').value); });
 $('#btn-connect').addEventListener('click', connect);
+$('#btn-export').addEventListener('click', exportProject);
+$('#btn-import').addEventListener('click', importProject);
 $('#btn-help').addEventListener('click', () => $('#help').scrollIntoView({ behavior: 'smooth' }));
 $('#btn-reset-code').addEventListener('click', () => { if (!currentClasses().length) return; if (confirm('Se reemplaza el programa actual por el de ejemplo. ¿Continuar?')) { localStorage.removeItem(projectKey()); openMakeCode(true); } });
 $('#btn-reset-all').addEventListener('click', async () => {
@@ -432,4 +492,4 @@ Designer.init({
 tf.enableProdMode && tf.enableProdMode();
 restore();
 
-window.TM2MB = { state, trainer, startCamera, train, loadTmUrl, identifiers, freshProject, renderClasses, showView, Designer };
+window.TM2MB = { state, trainer, startCamera, train, loadTmUrl, identifiers, freshProject, renderClasses, showView, Designer, exportProject, importProject };

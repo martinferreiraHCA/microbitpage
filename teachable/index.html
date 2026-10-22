@@ -6,7 +6,7 @@
   <title>IA con cámara → micro:bit</title>
   <meta name="description" content="Entrená tu propio modelo de imágenes con la cámara, programá el micro:bit con bloques en el editor MakeCode embebido y conectalo por USB. Todo en el navegador.">
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🤖</text></svg>">
-  <link rel="stylesheet" href="style.css?v=7">
+  <link rel="stylesheet" href="style.css?v=8">
   <script src="../ml/js/regenerator-guard.js"></script>
   <script src="../ml/vendor/tfjs/tfjs-4.22.0.min.js"></script>
 </head>
@@ -33,6 +33,13 @@
           <button class="btn primary" id="btn-train" disabled>🧠 Entrenar modelo</button>
           <div class="progress" id="progress" hidden><i></i></div>
           <span class="status" id="train-status"></span>
+        </div>
+
+        <div class="project-row">
+          <span>Proyecto</span>
+          <button class="mini" id="btn-export" title="Descarga un archivo con el modelo entrenado, las muestras, el programa del micro:bit y la interfaz">⬇ Guardar todo</button>
+          <button class="mini" id="btn-import" title="Recupera un proyecto guardado">📂 Abrir proyecto</button>
+          <small class="muted">modelo + muestras + programa + interfaz, en un archivo</small>
         </div>
 
         <details class="alt">
@@ -103,6 +110,6 @@
   </main>
 
   <div id="toasts"></div>
-  <script type="module" src="app.js?v=6"></script>
+  <script type="module" src="app.js?v=7"></script>
 </body>
 </html>

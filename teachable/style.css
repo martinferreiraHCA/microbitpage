@@ -76,6 +76,8 @@ input[type=url] { flex: 1; min-width: 0; }
 .train-row { display: flex; align-items: center; gap: 10px; margin-top: 12px; flex-wrap: wrap; }
 .progress { flex: 1; height: 8px; background: #eef1f6; border-radius: 4px; overflow: hidden; min-width: 80px; }
 .progress i { display: block; height: 100%; width: 0; background: var(--primary); transition: width .2s; }
+.project-row { display: flex; align-items: center; gap: 8px; flex-wrap: wrap; margin-top: 14px; padding-top: 10px; border-top: 1px solid var(--line); font-weight: 600; font-size: 13px; }
+.project-row small { font-weight: 400; font-size: 11px; }
 .alt { margin-top: 14px; border-top: 1px solid var(--line); padding-top: 8px; }
 .alt summary { cursor: pointer; font-size: 12px; color: var(--muted); }
 .alt form { margin-top: 8px; }
