@@ -382,7 +382,7 @@ namespace teachable {
     //% blockId=teachable_seDetecta
     //% block="¿se detecta %clase con certeza > %umbral \\\\%?"
     //% umbral.defl=70 umbral.min=0 umbral.max=100
-    //% weight=80
+    //% weight=110
     export function seDetecta(clase: TMClase, umbral: number): boolean {
         iniciar()
         return _clase == _nombres[clase] && _certeza > umbral
@@ -393,7 +393,7 @@ namespace teachable {
      */
     //% blockId=teachable_claseDetectada
     //% block="clase detectada"
-    //% weight=70
+    //% weight=105
     export function claseDetectada(): string {
         iniciar()
         return _clase
@@ -422,14 +422,18 @@ namespace teachable {
 }
 `;
 }
+const ICONS = ['IconNames.Happy', 'IconNames.Sad', 'IconNames.Heart', 'IconNames.Yes', 'IconNames.No', 'IconNames.Square', 'IconNames.Triangle', 'IconNames.Diamond'];
+/** Programa de ejemplo: un "por siempre" con un "si … sino si …" por clase (bloque booleano "¿se detecta…?"). */
 function exampleMainTs(names) {
-  const ids = identifiers(names), icons = ['IconNames.Happy', 'IconNames.Sad', 'IconNames.Heart', 'IconNames.Yes', 'IconNames.No', 'IconNames.Square', 'IconNames.Triangle', 'IconNames.Diamond'];
-  return names.map((n, i) => `teachable.alDetectar(TMClase.${ids[i]}, 70, function () {\n    basic.showIcon(${icons[i % icons.length]})\n})`).join('\n') + '\n';
+  const ids = identifiers(names);
+  const chain = names.map((n, i) => `${i ? ' else ' : '    '}if (teachable.seDetecta(TMClase.${ids[i]}, 70)) {\n        basic.showIcon(${ICONS[i % ICONS.length]})\n    }`).join('');
+  return `basic.forever(function () {\n${chain}\n})\n`;
 }
 function exampleBlocks(names) {
-  const ids = identifiers(names), icons = ['IconNames.Happy', 'IconNames.Sad', 'IconNames.Heart', 'IconNames.Yes', 'IconNames.No', 'IconNames.Square', 'IconNames.Triangle', 'IconNames.Diamond'];
-  const blocks = names.map((n, i) => `<block type="teachable_alDetectar" x="20" y="${20 + i * 150}"><field name="clase">TMClase.${ids[i]}</field><value name="umbral"><shadow type="math_number_minmax"><mutation min="0" max="100" label="Umbral" precision="0"></mutation><field name="SLIDER">70</field></shadow></value><statement name="HANDLER"><block type="basic_show_icon"><field name="i">${icons[i % icons.length]}</field></block></statement></block>`).join('');
-  return `<xml xmlns="https://developers.google.com/blockly/xml">${blocks}</xml>`;
+  const ids = identifiers(names);
+  const cond = i => `<value name="IF${i}"><block type="teachable_seDetecta"><field name="clase">TMClase.${ids[i]}</field><value name="umbral"><shadow type="math_number_minmax"><mutation min="0" max="100" label="Umbral" precision="0"></mutation><field name="SLIDER">70</field></shadow></value></block></value><statement name="DO${i}"><block type="basic_show_icon"><field name="i">${ICONS[i % ICONS.length]}</field></block></statement>`;
+  const ifBlock = `<block type="controls_if"><mutation elseif="${Math.max(0, names.length - 1)}"></mutation>${names.map((n, i) => cond(i)).join('')}</block>`;
+  return `<xml xmlns="https://developers.google.com/blockly/xml"><block type="device_forever" x="20" y="20"><statement name="HANDLER">${ifBlock}</statement></block></xml>`;
 }
 function freshProject(names) {
   return { text: {
