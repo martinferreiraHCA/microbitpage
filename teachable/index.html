@@ -6,7 +6,7 @@
   <title>IA con cámara → micro:bit</title>
   <meta name="description" content="Entrená tu propio modelo de imágenes con la cámara, programá el micro:bit con bloques en el editor MakeCode embebido y conectalo por USB. Todo en el navegador.">
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🤖</text></svg>">
-  <link rel="stylesheet" href="style.css?v=8">
+  <link rel="stylesheet" href="style.css?v=9">
   <script src="../ml/js/regenerator-guard.js"></script>
   <script src="../ml/vendor/tfjs/tfjs-4.22.0.min.js"></script>
 </head>
@@ -60,12 +60,14 @@
 
       <section class="step" id="step-microbit">
         <h2><i>3</i> Conectá el micro:bit</h2>
-        <p class="muted">Primero descargá el programa del editor (derecha) al micro:bit. Después conectalo acá por USB: cada detección viaja como <code>Clase#certeza</code>.</p>
+        <p class="muted">Primero descargá el programa del editor (derecha) al micro:bit con <b>Download</b>. Después conectalo acá por USB: cada detección viaja como <code>Clase#certeza</code>. Si volvés a descargar el programa, desconectá antes.</p>
         <div class="row">
           <button class="btn primary" id="btn-connect">🔌 Conectar por USB</button>
           <span class="dot" id="dot"></span><span id="mb-status" class="muted">desconectado</span>
         </div>
         <div class="sent" id="sent">—</div>
+        <div class="echo" id="echo"></div>
+        <div class="row small"><button class="mini" id="btn-ping" disabled>Enviar prueba</button><span class="muted" id="ping-status"></span></div>
         <div class="row small"><label>Enviar solo si la certeza supera <input type="number" id="min-conf" value="0" min="0" max="100" style="width:60px"> %</label></div>
       </section>
 
@@ -110,6 +112,6 @@
   </main>
 
   <div id="toasts"></div>
-  <script type="module" src="app.js?v=7"></script>
+  <script type="module" src="app.js?v=8"></script>
 </body>
 </html>

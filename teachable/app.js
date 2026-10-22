@@ -27,7 +27,7 @@ const state = {
   source: 'native',       // 'native' | 'tm'
   best: null, lastSent: 0, lastPredict: 0, smooth: null, preds: [], predEls: null, predNames: '',
   counts: {}, lastClass: '',
-  port: null, reader: null, keep: false,
+  port: null, reader: null, keep: false, writer: null, writeChain: Promise.resolve(), lastEcho: 0, pongTimer: null, sentCount: 0,
   project: null, mcReady: false, mcUrl: '',
 };
 
@@ -226,8 +226,9 @@ async function send(best) {
   if (conf < (+$('#min-conf').value || 0)) return;
   const line = best.className + '#' + conf;
   $('#sent').textContent = '▶ ' + line + (state.port ? '' : '   (conectá el micro:bit para enviarlo)');
-  if (!state.port || !state.port.writable) return;
-  try { const w = state.port.writable.getWriter(); await w.write(new TextEncoder().encode(line + '\n')); w.releaseLock(); } catch (e) { console.warn(e); }
+  if (!state.port) return;
+  await writeLine(line);
+  if (state.lastEcho && Date.now() - state.lastEcho > 4000) setEcho('⚠ Hace unos segundos que el micro:bit no responde. ¿Sigue el programa cargado y el cable conectado?', 'warn');
 }
 
 /* ---------- micro:bit por USB (Web Serial) ---------- */
@@ -237,20 +238,44 @@ async function connect() {
   try {
     const port = await navigator.serial.requestPort({ filters: [{ usbVendorId: 0x0d28 }] });
     await port.open({ baudRate: 115200 });
-    state.port = port; state.keep = true;
+    state.port = port; state.keep = true; state.writer = port.writable.getWriter(); state.sentCount = 0; state.lastEcho = 0;
     $('#dot').classList.add('on'); $('#mb-status').textContent = 'conectado'; $('#btn-connect').textContent = '🔌 Desconectar'; $('#btn-connect').classList.add('connected');
+    $('#btn-ping').disabled = false;
     $('#step-microbit').classList.add('done'); toast('micro:bit conectado ✔', 'ok');
     readLoop(port);
+    ping();
   } catch (e) { if (e.name !== 'NotFoundError') toast('No se pudo conectar: ' + e.message, 'error', 6000); }
 }
 async function readLoop(port) {
   const decoder = new TextDecoderStream(); const closed = port.readable.pipeTo(decoder.writable).catch(() => {});
   const reader = decoder.readable.getReader(); state.reader = reader; let buf = '';
-  try { while (state.keep) { const { value, done } = await reader.read(); if (done) break; buf += value; let i; while ((i = buf.indexOf('\n')) >= 0) { const line = buf.slice(0, i).trim(); buf = buf.slice(i + 1); if (line) $('#sent').textContent = '◀ ' + line; } } }
+  try { while (state.keep) { const { value, done } = await reader.read(); if (done) break; buf += value; let i; while ((i = buf.indexOf('\n')) >= 0) { const line = buf.slice(0, i).trim(); buf = buf.slice(i + 1); if (line) onLineFromMicrobit(line); } } }
   catch (e) {} finally { try { reader.releaseLock(); } catch (e) {} await closed; if (state.port) onDisconnected(); }
 }
-async function disconnect() { state.keep = false; try { if (state.reader) await state.reader.cancel(); } catch (e) {} try { if (state.port) await state.port.close(); } catch (e) {} onDisconnected(); }
-function onDisconnected() { state.port = null; state.reader = null; $('#dot').classList.remove('on'); $('#mb-status').textContent = 'desconectado'; $('#btn-connect').textContent = '🔌 Conectar por USB'; $('#btn-connect').classList.remove('connected'); }
+async function disconnect() { state.keep = false; try { if (state.reader) await state.reader.cancel(); } catch (e) {} try { if (state.writer) { state.writer.releaseLock(); } } catch (e) {} try { if (state.port) await state.port.close(); } catch (e) {} onDisconnected(); }
+function onDisconnected() { state.port = null; state.reader = null; state.writer = null; clearTimeout(state.pongTimer); $('#dot').classList.remove('on'); $('#mb-status').textContent = 'desconectado'; $('#btn-connect').textContent = '🔌 Conectar por USB'; $('#btn-connect').classList.remove('connected'); $('#btn-ping').disabled = true; setEcho('', ''); }
+function setEcho(msg, cls) { const el = $('#echo'); el.textContent = msg; el.className = 'echo ' + (cls || ''); }
+/** Lo que contesta el micro:bit: "ok:Clase#NN" por cada línea recibida y "pong" a un "ping". */
+function onLineFromMicrobit(line) {
+  state.lastEcho = Date.now();
+  if (line === 'pong') { clearTimeout(state.pongTimer); setEcho('✔ El micro:bit responde: tiene cargado el programa con los bloques Teachable.', 'ok'); $('#ping-status').textContent = 'respuesta recibida'; return; }
+  if (line.startsWith('ok:')) { setEcho('✔ micro:bit recibió: ' + line.slice(3), 'ok'); return; }
+  setEcho('◀ micro:bit dice: ' + line, '');
+}
+/** Escritura en cola: una línea a la vez, sin perder las siguientes. */
+function writeLine(text) {
+  if (!state.writer) return Promise.resolve(false);
+  const data = new TextEncoder().encode(text + '\n');
+  state.writeChain = state.writeChain.then(() => state.writer ? state.writer.write(data) : null).then(() => { state.sentCount++; return true; }).catch(e => { console.warn('serial write', e); return false; });
+  return state.writeChain;
+}
+function ping() {
+  if (!state.port) return;
+  $('#ping-status').textContent = 'esperando respuesta…'; setEcho('Probando la conexión…', '');
+  writeLine('ping');
+  clearTimeout(state.pongTimer);
+  state.pongTimer = setTimeout(() => { if (state.port && Date.now() - state.lastEcho > 2500) { setEcho('⚠ Conectado, pero el micro:bit no responde. Cargá en el micro:bit el programa del editor (Download) con los bloques Teachable, esperá que reinicie y conectá de nuevo.', 'warn'); $('#ping-status').textContent = 'sin respuesta'; } }, 3000);
+}
 
 /* ---------- MakeCode embebido con la categoría "Teachable" ---------- */
 function classesTs(names) {
@@ -272,12 +297,18 @@ namespace teachable {
         if (_listo) return
         _listo = true
         serial.setBaudRate(BaudRate.BaudRate115200)
+        serial.setRxBufferSize(128)
         serial.onDataReceived(serial.delimiters(Delimiters.NewLine), function () {
             const linea = serial.readUntil(serial.delimiters(Delimiters.NewLine)).trim()
+            if (linea == "ping") {
+                serial.writeLine("pong")
+                return
+            }
             const i = linea.indexOf("#")
             if (i < 0) return
             _clase = linea.substr(0, i)
             _certeza = parseInt(linea.substr(i + 1))
+            serial.writeLine("ok:" + _clase + "#" + _certeza)
             control.raiseEvent(EVT, 1)
         })
     }
@@ -463,6 +494,7 @@ $('#btn-add-class').addEventListener('click', () => { if (state.classes.length >
 $('#btn-train').addEventListener('click', train);
 $('#model-form').addEventListener('submit', ev => { ev.preventDefault(); loadTmUrl($('#model-url').value); });
 $('#btn-connect').addEventListener('click', connect);
+$('#btn-ping').addEventListener('click', ping);
 $('#btn-export').addEventListener('click', exportProject);
 $('#btn-import').addEventListener('click', importProject);
 $('#btn-help').addEventListener('click', () => $('#help').scrollIntoView({ behavior: 'smooth' }));
@@ -492,4 +524,4 @@ Designer.init({
 tf.enableProdMode && tf.enableProdMode();
 restore();
 
-window.TM2MB = { state, trainer, startCamera, train, loadTmUrl, identifiers, freshProject, renderClasses, showView, Designer, exportProject, importProject };
+window.TM2MB = { state, trainer, startCamera, train, loadTmUrl, identifiers, freshProject, renderClasses, showView, Designer, exportProject, importProject, send, ping, openMakeCode, teachableTs };
