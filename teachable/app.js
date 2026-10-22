@@ -7,6 +7,7 @@
    ========================================================================== */
 import * as trainer from '../ml/js/image-trainer.js';
 import { Webcam } from '../ml/js/webcam.js';
+import { Designer } from './designer.js';
 
 const $ = s => document.querySelector(s);
 const PROJECT_ID = 'tm2mb';                 // clave de muestras/modelo en IndexedDB
@@ -14,6 +15,8 @@ const STORE_KEY = 'tm2mb:native';           // { classNames, modelInfo }
 const MAKECODE_URL = 'https://makecode.microbit.org/v9.0.12';
 const MAKECODE_ORIGIN = 'https://makecode.microbit.org';
 const SEND_EVERY_MS = 250;
+const PREDICT_EVERY_MS = 90;     // ~11 predicciones por segundo: fluido sin saturar la GPU
+const SMOOTH = 0.55;             // suavizado de las barras (0 = sin suavizar)
 
 const state = {
   classes: [],            // nombres (espejo de trainer.getClassNames())
@@ -21,7 +24,8 @@ const state = {
   webcam: null, camOn: false, raf: 0, inFlight: false,
   tm: null,               // modelo externo de Teachable Machine { model, labels }
   source: 'native',       // 'native' | 'tm'
-  best: null, lastSent: 0,
+  best: null, lastSent: 0, lastPredict: 0, smooth: null, preds: [], predEls: null, predNames: '',
+  counts: {}, lastClass: '',
   port: null, reader: null, keep: false,
   project: null, mcReady: false, mcUrl: '',
 };
@@ -87,14 +91,24 @@ async function startCamera() {
 function loop() {
   if (!state.camOn) return;
   state.webcam.update();
+  drawTestView();
   const canPredict = (state.source === 'tm' && state.tm) || (state.source === 'native' && state.trained && !state.needsTraining && !state.training);
-  if (canPredict && !state.inFlight) {
-    state.inFlight = true;
+  const now = performance.now();
+  if (canPredict && !state.inFlight && now - state.lastPredict >= PREDICT_EVERY_MS) {
+    state.inFlight = true; state.lastPredict = now;
     (state.source === 'tm' ? predictTm(state.webcam.canvas) : trainer.predict(state.webcam.canvas))
       .then(p => { state.inFlight = false; if (p && p.length) onPreds(p); })
       .catch(e => { state.inFlight = false; console.warn(e); });
   }
   state.raf = requestAnimationFrame(loop);
+}
+/** Copia de la cámara en "Probá el modelo", con la clase detectada encima. */
+function drawTestView() {
+  const c = $('#test-canvas'); if (!c || !state.webcam) return;
+  const src = state.webcam.canvas; if (!src.width) return;
+  if (c.width !== src.width) { c.width = src.width; c.height = src.height; }
+  c.getContext('2d').drawImage(src, 0, 0);
+  $('#test-empty').hidden = true;
 }
 
 /* ---------- clases y muestras ---------- */
@@ -184,11 +198,26 @@ async function predictTm(sourceCanvas) {
 
 /* ---------- predicciones y envío ---------- */
 function renderPreds(preds, best) {
-  $('#preds').innerHTML = preds.map(p => `<div class="pred ${p === best ? 'top' : ''}"><span>${esc(p.className)}</span><div class="bar"><i style="width:${(p.probability * 100).toFixed(0)}%"></i></div><b>${(p.probability * 100).toFixed(0)}%</b></div>`).join('');
+  const names = preds.map(p => p.className).join('\u0001');
+  const box = $('#preds');
+  if (state.predNames !== names || !state.predEls) {   // la lista de clases cambió: se reconstruye una vez
+    box.innerHTML = preds.map(p => `<div class="pred"><span>${esc(p.className)}</span><div class="bar"><i style="width:0%"></i></div><b>0%</b></div>`).join('');
+    state.predEls = [...box.children].map(el => ({ el, bar: el.querySelector('i'), pct: el.querySelector('b') }));
+    state.predNames = names;
+  }
+  preds.forEach((p, i) => { const r = state.predEls[i]; if (!r) return; const pct = Math.round(p.probability * 100) + '%'; r.bar.style.width = pct; if (r.pct.textContent !== pct) r.pct.textContent = pct; r.el.classList.toggle('top', p === best); });
 }
-function onPreds(preds) {
+function onPreds(raw) {
+  // suavizado exponencial: menos parpadeo en barras, luces y envío
+  if (!state.smooth || state.smooth.length !== raw.length || state.smooth.some((s, i) => s.className !== raw[i].className)) state.smooth = raw.map(p => ({ className: p.className, probability: p.probability }));
+  else state.smooth.forEach((s, i) => { s.probability = s.probability * SMOOTH + raw[i].probability * (1 - SMOOTH); });
+  const preds = state.smooth;
   let best = preds[0]; for (const p of preds) if (p.probability > best.probability) best = p;
-  state.best = best; renderPreds(preds, best); $('#step-test').classList.add('done');
+  state.best = best; state.preds = preds; renderPreds(preds, best); $('#step-test').classList.add('done');
+  const lbl = $('#test-label'); const txt = `${best.className} · ${Math.round(best.probability * 100)} %`; if (lbl.textContent !== txt) lbl.textContent = txt;
+  $('#live-pill').hidden = false;
+  if (best.className !== state.lastClass) { state.lastClass = best.className; state.counts[best.className] = (state.counts[best.className] || 0) + 1; window.dispatchEvent(new CustomEvent('tm2mb:class', { detail: { className: best.className, probability: best.probability } })); }
+  window.dispatchEvent(new CustomEvent('tm2mb:preds', { detail: { preds, best } }));
   const now = Date.now(); if (now - state.lastSent >= SEND_EVERY_MS) { state.lastSent = now; send(best); }
 }
 async function send(best) {
@@ -386,6 +415,21 @@ $('#btn-reset-all').addEventListener('click', async () => {
   location.reload();
 });
 if (!navigator.serial) $('#mb-status').textContent = 'este navegador no tiene Web Serial (usá Chrome o Edge)';
+document.querySelectorAll('.tab').forEach(t => t.addEventListener('click', () => showView(t.dataset.view)));
+function showView(v) {
+  document.querySelectorAll('.tab').forEach(t => t.classList.toggle('active', t.dataset.view === v));
+  $('#view-train').hidden = v !== 'train'; $('#view-design').hidden = v !== 'design';
+  if (v === 'design') { Designer.show(); if (!state.camOn && (state.trained || state.tm)) toast('La cámara está apagada: iniciála en la pestaña 1 para ver datos en vivo', 'warn', 5000); }
+}
+Designer.init({
+  getClasses: () => currentClasses(),
+  getCamera: () => (state.camOn && state.webcam ? state.webcam.canvas : null),
+  getCounts: () => state.counts,
+  getSerial: () => ({ connected: !!state.port, last: $('#sent').textContent }),
+  isReady: () => !!(state.trained || state.tm),
+  toast,
+});
+tf.enableProdMode && tf.enableProdMode();
 restore();
 
-window.TM2MB = { state, trainer, startCamera, train, loadTmUrl, identifiers, freshProject, renderClasses };
+window.TM2MB = { state, trainer, startCamera, train, loadTmUrl, identifiers, freshProject, renderClasses, showView, Designer };

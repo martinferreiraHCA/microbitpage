@@ -82,6 +82,8 @@ Alternativa por Bluetooth (micro:bit lejos de la computadora): ML - micro:bit ma
 
 Chrome o Edge en computadora. Primero descargar el programa y después conectar el puerto serial.
 
+**Pestaña "Visualizar datos":** con el modelo entrenado y la cámara andando, un lienzo de diseño drag & drop para armar una interfaz propia: cámara en vivo, clase detectada, certeza, barras por clase, luces por clase (con umbral), contadores, texto con `{clase}`/`{certeza}`, historial de los últimos 60 s, estado del micro:bit e imágenes; fondo de color o imagen, modo bloqueado y pantalla completa. El diseño se guarda en el navegador y se puede descargar/abrir como JSON.
+
 ## Embeber el panel en otra página
 
 ```html

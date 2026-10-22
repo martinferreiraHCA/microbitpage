@@ -6,17 +6,18 @@
   <title>IA con cámara → micro:bit</title>
   <meta name="description" content="Entrená tu propio modelo de imágenes con la cámara, programá el micro:bit con bloques en el editor MakeCode embebido y conectalo por USB. Todo en el navegador.">
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🤖</text></svg>">
-  <link rel="stylesheet" href="style.css?v=5">
+  <link rel="stylesheet" href="style.css?v=6">
   <script src="../ml/js/regenerator-guard.js"></script>
   <script src="../ml/vendor/tfjs/tfjs-4.22.0.min.js"></script>
 </head>
 <body>
   <header class="top">
     <div class="brand">🤖 IA con cámara <span>→</span> micro:bit</div>
-    <div class="top-links"><button class="link" id="btn-help">¿Cómo funciona?</button></div>
+    <nav class="tabs"><button class="tab active" data-view="train">1 · Entrenar y programar</button><button class="tab" data-view="design">2 · Visualizar datos</button></nav>
+    <div class="top-links"><span class="live" id="live-pill" hidden>● modelo activo</span><button class="link" id="btn-help">¿Cómo funciona?</button></div>
   </header>
 
-  <main class="layout">
+  <main class="layout" id="view-train">
     <aside class="side">
       <section class="step" id="step-train">
         <h2><i>1</i> Entrená tu modelo con la cámara</h2>
@@ -46,7 +47,8 @@
 
       <section class="step" id="step-test">
         <h2><i>2</i> Probá el modelo</h2>
-        <div class="preds" id="preds"><div class="muted">Cuando entrenes, acá aparecen las clases y lo que la cámara ve.</div></div>
+        <div class="test-cam" id="test-cam"><canvas id="test-canvas" width="320" height="320"></canvas><div class="test-label" id="test-label">—</div><div class="muted test-empty" id="test-empty">Cuando entrenes y la cámara esté activa, acá ves lo que el modelo detecta.</div></div>
+        <div class="preds" id="preds"></div>
       </section>
 
       <section class="step" id="step-microbit">
@@ -84,7 +86,23 @@
     </section>
   </main>
 
+  <main class="design" id="view-design" hidden>
+    <aside class="dz-palette" id="dz-palette">
+      <h3>Elementos</h3>
+      <p class="muted">Arrastralos al lienzo o tocalos para agregarlos. Después movelos y cambiales el tamaño desde la esquina.</p>
+      <div class="dz-items" id="dz-items"></div>
+      <h3>Lienzo</h3>
+      <div class="row small"><label>Fondo <input type="color" id="dz-bg" value="#f5f6f8"></label><input type="file" id="dz-bg-img" accept="image/*" title="Imagen de fondo"><button class="mini" id="dz-bg-clear">sin imagen</button></div>
+      <div class="row small"><button class="mini" id="dz-save">⬇ Guardar diseño</button><button class="mini" id="dz-load">📂 Abrir</button><button class="mini danger" id="dz-clear">Vaciar</button></div>
+      <div class="dz-props" id="dz-props"><p class="muted">Tocá un elemento del lienzo para editar sus opciones.</p></div>
+    </aside>
+    <section class="dz-main">
+      <div class="dz-bar"><span>Tu interfaz</span><span class="muted" id="dz-status">sin modelo: entrená primero en la pestaña 1</span><span class="spacer"></span><button class="mini" id="dz-edit">🔒 Bloquear</button><button class="mini" id="dz-full">⛶ Pantalla completa</button></div>
+      <div class="dz-viewport" id="dz-viewport"><div class="dz-canvas" id="dz-canvas"></div></div>
+    </section>
+  </main>
+
   <div id="toasts"></div>
-  <script type="module" src="app.js?v=5"></script>
+  <script type="module" src="app.js?v=6"></script>
 </body>
 </html>
