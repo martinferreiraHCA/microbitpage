@@ -286,16 +286,29 @@ function classesTs(names) {
 function teachableTs() {
   return `// Bloques "Teachable": reciben por el cable USB las detecciones que manda la página
 // IA con cámara → micro:bit con el formato "Clase#certeza" (una por línea).
+//
+// Cada clase usa su propio valor de evento (índice + 1) y los manejadores se guardan en
+// listas: en MakeCode control.onEvent conserva UN solo manejador por (evento, valor), así
+// que registrar dos bloques sobre el mismo valor dejaría activo solo el último.
 //% color="#8e44ad" weight=100 icon="\\uf030" block="Teachable"
 namespace teachable {
     const EVT = 0x7e1
+    const DESCONOCIDA = 250
     let _clase = ""
     let _certeza = 0
     let _listo = false
+    let _ocupados: boolean[] = []        // índice 0: "cualquier clase"; i + 1: clase i
+    let _porClase: (() => void)[][] = []  // manejadores por clase
+    let _cualquiera: (() => void)[] = []
+    let _cualquieraListo = false
 
     function iniciar() {
         if (_listo) return
         _listo = true
+        for (let i = 0; i <= _nombres.length; i++) {
+            _porClase.push([])
+            _ocupados.push(false)
+        }
         serial.setBaudRate(BaudRate.BaudRate115200)
         serial.setRxBufferSize(128)
         serial.onDataReceived(serial.delimiters(Delimiters.NewLine), function () {
@@ -309,8 +322,16 @@ namespace teachable {
             _clase = linea.substr(0, i)
             _certeza = parseInt(linea.substr(i + 1))
             serial.writeLine("ok:" + _clase + "#" + _certeza)
-            control.raiseEvent(EVT, 1)
+            const idx = _nombres.indexOf(_clase)
+            control.raiseEvent(EVT, idx >= 0 ? idx + 1 : DESCONOCIDA)
         })
+    }
+
+    function correr(lista: (() => void)[], clave: number) {
+        if (_ocupados[clave]) return   // si un bloque de esta lista todavía está corriendo, se descarta esta detección
+        _ocupados[clave] = true
+        for (let i = 0; i < lista.length; i++) lista[i]()
+        _ocupados[clave] = false
     }
 
     /**
@@ -322,8 +343,15 @@ namespace teachable {
     //% weight=100
     export function alDetectar(clase: TMClase, umbral: number, handler: () => void) {
         iniciar()
-        control.onEvent(EVT, 1, function () {
-            if (_clase == _nombres[clase] && _certeza > umbral) handler()
+        const idx = clase as number
+        if (idx < 0 || idx >= _nombres.length) return
+        if (_porClase[idx].length == 0) {
+            control.onEvent(EVT, idx + 1, function () {
+                correr(_porClase[idx], idx + 1)
+            })
+        }
+        _porClase[idx].push(function () {
+            if (_certeza > umbral) handler()
         })
     }
 
@@ -336,7 +364,14 @@ namespace teachable {
     //% weight=90
     export function alDetectarCualquiera(umbral: number, handler: () => void) {
         iniciar()
-        control.onEvent(EVT, 1, function () {
+        if (!_cualquieraListo) {
+            _cualquieraListo = true
+            // valor 0 = cualquier valor del evento
+            control.onEvent(EVT, 0, function () {
+                correr(_cualquiera, 0)
+            })
+        }
+        _cualquiera.push(function () {
             if (_certeza > umbral) handler()
         })
     }
