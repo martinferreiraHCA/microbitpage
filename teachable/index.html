@@ -6,7 +6,7 @@
   <title>IA con cámara → micro:bit</title>
   <meta name="description" content="Entrená tu propio modelo de imágenes con la cámara, programá el micro:bit con bloques en el editor MakeCode embebido y conectalo por USB. Todo en el navegador.">
   <link rel="icon" href="data:image/svg+xml,<svg xmlns='http://www.w3.org/2000/svg' viewBox='0 0 100 100'><text y='.9em' font-size='90'>🤖</text></svg>">
-  <link rel="stylesheet" href="style.css?v=9">
+  <link rel="stylesheet" href="style.css?v=10">
   <script src="../ml/js/regenerator-guard.js"></script>
   <script src="../ml/vendor/tfjs/tfjs-4.22.0.min.js"></script>
 </head>
@@ -27,7 +27,8 @@
         <div class="row small"><label><input type="checkbox" id="chk-mirror" checked> espejar</label><span class="muted" id="cam-status"></span></div>
 
         <div class="classes-list" id="classes-list"></div>
-        <div class="row"><button class="mini" id="btn-add-class">+ Agregar clase</button><span class="muted small-note">Mantené apretado <b>Capturar</b> para grabar varias muestras (mínimo 8 por clase).</span></div>
+        <div class="row"><button class="mini" id="btn-add-class">+ Agregar clase</button><span class="muted small-note">Mantené apretado <b>Capturar</b> para grabar varias muestras (mínimo 8 por clase). Un toque = 1 muestra.</span></div>
+        <div class="status" id="capture-note"></div>
 
         <div class="train-row">
           <button class="btn primary" id="btn-train" disabled>🧠 Entrenar modelo</button>
@@ -112,6 +113,6 @@
   </main>
 
   <div id="toasts"></div>
-  <script type="module" src="app.js?v=10"></script>
+  <script type="module" src="app.js?v=11"></script>
 </body>
 </html>

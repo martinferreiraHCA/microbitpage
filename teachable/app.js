@@ -86,6 +86,7 @@ async function startCamera() {
     state.webcam.canvas.className = 'webcam'; cam.insertBefore(state.webcam.canvas, cam.firstChild);
     $('#cam-off').hidden = true; state.camOn = true;
     $('#cam-status').textContent = 'cámara activa';
+    if (!state.trained) setTrainStatus(state.classes.length >= 2 ? 'Mantené apretado Capturar en cada clase (mínimo 8 muestras) y después Entrenar.' : 'Agregá al menos 2 clases.');
     loop();
   } catch (e) { console.error(e); toast('Cámara: ' + e.message, 'error', 6000); }
 }
@@ -123,9 +124,19 @@ function renderClasses() {
     const inp = el.querySelector('.cls-name');
     inp.addEventListener('change', () => { const v = safeName(inp.value) || ('Clase ' + (i + 1)); inp.value = v; trainer.renameClass(i, v); state.classes[i] = v; saveState(); markNeedsTraining(); refreshMakeCodeIfTrained(); });
     const cap = el.querySelector('.btn-capture');
-    const start = ev => { ev.preventDefault(); if (!state.camOn) { toast('Primero iniciá la cámara', 'warn'); return; } cap.classList.add('recording'); trainer.startCapture(i, state.webcam.canvas); };
+    let captured = false;
+    const start = async ev => {
+      ev.preventDefault();
+      if (state.training) return;
+      if (!state.camOn) { setCaptureNote('Iniciando la cámara…'); await startCamera(); if (!state.camOn) return; setCaptureNote('Cámara lista: mantené apretado Capturar.'); return; }
+      try { captured = true; cap.classList.add('recording'); try { cap.setPointerCapture(ev.pointerId); } catch (e) {} trainer.startCapture(i, state.webcam.canvas); setCaptureNote(''); }
+      catch (e) { console.error(e); cap.classList.remove('recording'); setCaptureNote('No se pudo capturar: ' + e.message, 'error'); }
+    };
     const stop = () => { if (!cap.classList.contains('recording')) return; cap.classList.remove('recording'); trainer.stopCapture(); afterCapture(i, el); };
-    cap.addEventListener('pointerdown', start); cap.addEventListener('pointerup', stop); cap.addEventListener('pointerleave', stop); cap.addEventListener('pointercancel', stop);
+    cap.addEventListener('pointerdown', start); cap.addEventListener('pointerup', stop); cap.addEventListener('pointercancel', stop); cap.addEventListener('lostpointercapture', stop);
+    cap.addEventListener('contextmenu', ev => ev.preventDefault());
+    // navegadores sin eventos de puntero o gestos cancelados: un clic = una muestra
+    cap.addEventListener('click', ev => { ev.preventDefault(); if (captured) { captured = false; return; } if (!state.camOn || state.training) return; try { trainer.captureOne(i, state.webcam.canvas); afterCapture(i, el); } catch (e) { setCaptureNote('No se pudo capturar: ' + e.message, 'error'); } });
     el.querySelector('[data-del]').addEventListener('click', () => { if (state.classes.length <= 1) return; if (trainer.getSamples(i).length && !confirm(`¿Quitar la clase "${name}" y sus muestras?`)) return; trainer.removeClass(i); state.classes.splice(i, 1); saveState(); trainer.saveSamples(PROJECT_ID).catch(() => {}); markNeedsTraining(); renderClasses(); });
     list.appendChild(el);
   });
@@ -139,6 +150,7 @@ function afterCapture(i, el) {
   markNeedsTraining(); updateTrainButton();
   trainer.saveSamples(PROJECT_ID).catch(e => console.warn('No se pudieron guardar las muestras', e));
 }
+function setCaptureNote(msg, cls) { const el = $('#capture-note'); if (!el) return; el.textContent = msg || ''; el.className = 'status ' + (cls || ''); }
 function markNeedsTraining() { if (state.trained) { state.needsTraining = true; setTrainStatus('Cambiaste clases o muestras: volvé a entrenar para usarlas.', 'warn'); } }
 function updateTrainButton() {
   const ok = state.classes.length >= 2 && state.classes.every((_, i) => trainer.getSamples(i).length >= 8);
